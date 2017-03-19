@@ -13,11 +13,7 @@
   },
   "content_scripts": [
     {
-      "matches": [
-        "https://mail.google.com/*",
-        "https://www.google.com/calendar/*",
-        "https://calendar.google.com/calendar/*"
-      ],
+      "matches": ["<all_urls>"],
       "css": ["content/styles.css"],
       "js": [
         "vendor/jquery-3.2.0.min.js",
@@ -25,14 +21,6 @@
         "content/script.js"
       ],
       "run_at": "document_end"
-    }, {
-      "matches": [ "https://keep.google.com/*" ],
-      "all_frames": true,
-      "css": ["inject/styles.css"],
-      "js": [
-        "vendor/jquery-3.2.0.min.js",
-        "inject/script.js"
-      ]
     }
   ],
   "background": {
@@ -44,10 +32,7 @@
     "storage",
     "webRequest",
     "webRequestBlocking",
-    "https://mail.google.com/*",
-    "https://www.google.com/calendar/*",
-    "https://calendar.google.com/calendar/*",
-    "https://keep.google.com/*"
+    "<all_urls>"
   ],
   "web_accessible_resources": [ "images/gear.png" ]
 }

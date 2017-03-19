@@ -28,7 +28,9 @@
       let inGmail = config.showOnGmail && URL.match(/mail.google/) && ! URL.match(/view=(pt|btop|cm|cv)/)
       let inCalendar = config.showOnCalendar && URL.match(/calendar/) && ! URL.match(/printevent/)
 
-      if (inGmail || inCalendar) {
+      // TODO: Change this to work on the selected urls
+      // if (inGmail || inCalendar) {
+      if (true) {
         addResizeHandle()
         loadIframe()
         addShowHideButton()
@@ -91,7 +93,7 @@
         $('body').css('cursor', 'auto')
 
         // Save configuration
-        configuration.set({ iframeWidth: currentWidth })
+        configuration.set({ iframeWidth: toFixed(currentWidth, 2) })
       }))
     }
 
@@ -207,4 +209,7 @@
     }
   }
 
+  function toFixed(number, decimals) {
+    return parseFloat(number.toFixed(decimals))
+  }
 })()

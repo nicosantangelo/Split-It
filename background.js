@@ -40,9 +40,9 @@ chrome.runtime.onInstalled.addListener(function(details) {
 // -----------------------------------------------------------------------------
 // Intercept Web Requests
 
+// TODO: Update on options save
 configuration.get('sitePage', function(sitePage) {
-  let hosts = sitePage
-  let iframeHosts = sitePage
+  let hosts = getHostVariations(sitePage)
 
   chrome.webRequest.onHeadersReceived.addListener(function(details) {
     let responseHeaders = details.responseHeaders
@@ -54,8 +54,9 @@ configuration.get('sitePage', function(sitePage) {
       if (isCSPHeader) {
         let newCSP = header.value
           .replace('script-src', `script-src ${hosts}`)
+          .replace('child-src', `child-src ${hosts}`)
           .replace('style-src', `style-src ${hosts}`)
-          .replace('frame-src', `frame-src ${iframeHosts}`)
+          .replace('frame-src', `frame-src ${hosts}`)
 
         header.value = newCSP
       } else if (isFrameHeader(header)) {
@@ -66,7 +67,7 @@ configuration.get('sitePage', function(sitePage) {
     return { responseHeaders: responseHeaders }
 
   }, {
-    urls: ['https://mail.google.com/*', 'https://www.google.com/calendar/*', 'https://calendar.google.com/calendar/*'],
+    urls: ['<all_urls>'],
     types: ['main_frame']
   }, ['blocking', 'responseHeaders'])
 })
@@ -115,8 +116,15 @@ function openOptionsPage() {
   })
 }
 
-
 function isFrameHeader(header) {
   let headerName = header.name.toLowerCase()
   return headerName == 'x-frame-options' || headerName == 'frame-options'
+}
+
+function getHostVariations(url) {
+  // Takes a full url and tries to generate the different host versions
+  // from: "https://reddit.com" to "www.reddit.com reddit.com"
+  url = url.replace(/https?:\/\/(www\.)?/, '')
+
+  return `www.${url} ${url}`
 }

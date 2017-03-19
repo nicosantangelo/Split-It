@@ -19,9 +19,7 @@
     let newValues = {}
 
     configuration.forEachDefault(function(key, value) {
-      if(elements[key]) {
-        newValues[key] = elements[key].checked
-      }
+      newValues[key] = getInputValue(elements[key])
     })
 
     configuration.set(newValues, function() {
@@ -64,4 +62,10 @@
     elements[key].checked = value
     elements[key].value = value
   })
+
+  function getInputValue(input) {
+    if (! input) return null
+    if (input.type === 'checkbox') return input.checked
+    return input.value
+  }
 })()
