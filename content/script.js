@@ -25,11 +25,8 @@
     try {
       let URL = document.URL
 
-      let inGmail = config.showOnGmail && URL.match(/mail.google/) && ! URL.match(/view=(pt|btop|cm|cv)/)
-      let inCalendar = config.showOnCalendar && URL.match(/calendar/) && ! URL.match(/printevent/)
-
-      // TODO: Change this to work on the selected urls
-      // if (inGmail || inCalendar) {
+      // TODO: Change this to work only on the selected urls
+      // TODO: Add exceptions
       if (true) {
         addResizeHandle()
         loadIframe()

@@ -2,9 +2,7 @@
   var DEFAULT_CONFIGURATION = {
     sitePage      : "https://keep.google.com",
     iframeWidth   : 25,
-    expandOnHover : false,
-    showOnGmail   : true,
-    showOnCalendar: true
+    expandOnHover : false
   }
 
   var configuration = {
