@@ -1,0 +1,53 @@
+{
+  "manifest_version": 2,
+  "name": "SplitGmail",
+  "description": "Add any site you like into other google products",
+  "short_name": "SplitGmail",
+  "version": "1.0.0",
+  "icons": {
+    "18": "icons/18.png",
+    "19": "icons/19.png",
+    "38": "icons/38.png",
+    "48": "icons/48.png",
+    "128": "icons/128.png"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://mail.google.com/*",
+        "https://www.google.com/calendar/*",
+        "https://calendar.google.com/calendar/*"
+      ],
+      "css": ["content/styles.css"],
+      "js": [
+        "vendor/jquery-3.2.0.min.js",
+        "configuration.js",
+        "content/script.js"
+      ],
+      "run_at": "document_end"
+    }, {
+      "matches": [ "https://keep.google.com/*" ],
+      "all_frames": true,
+      "css": ["inject/styles.css"],
+      "js": [
+        "vendor/jquery-3.2.0.min.js",
+        "inject/script.js"
+      ]
+    }
+  ],
+  "background": {
+    "scripts": ["configuration.js", "background.js"],
+    "persistent": true
+  },
+  "options_page": "options/options.html",
+  "permissions": [
+    "storage",
+    "webRequest",
+    "webRequestBlocking",
+    "https://mail.google.com/*",
+    "https://www.google.com/calendar/*",
+    "https://calendar.google.com/calendar/*",
+    "https://keep.google.com/*"
+  ],
+  "web_accessible_resources": [ "images/gear.png" ]
+}
