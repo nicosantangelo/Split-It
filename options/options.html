@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title>SplitGmail</title>
+
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link rel="stylesheet" type="text/css" href="options.css">
+</head>
+<body>
+
+  <header>
+    <img src="../icons/128.png" width="104" alt="SplitGmail">
+    <h1>SplitGmail</h1>
+  </header>
+
+  <div class="configuration">
+    <div class="options">
+      <div class="option">
+        Main site page
+        <input type="text" name="sitePage" id="sitePage" placeholder="http://site.com">
+      </div>
+      <div class="option">
+        Width of the iframe, as a percentage
+        <input type="number" name="iframeWidth" id="iframeWidth" placeholder="25%">
+      </div>
+      <div class="option">
+        <input type="checkbox" name="expandOnHover" id="expandOnHover">
+        Should expand on hover?
+      </div>
+      <div class="option">
+        <input type="checkbox" name="showOnGmail" id="showOnGmail">
+        Show on Gmail?
+      </div>
+      <div class="option">
+        <input type="checkbox" name="showOnCalendar" id="showOnCalendar">
+        Show on Google Calendar?
+      </div>
+    </div>
+
+    <br />
+
+    <div class="save-button">
+      <div id="save" class="btn btn-primary">Save changes</div>
+    </div>
+    &nbsp;&nbsp;
+
+    <br /> <br />
+
+    <div id="notice" class="notice hidden">
+      <span class="close-notice">x</span>
+      <b>Options saved!</b>
+    </div>
+  </div>
+
+  <script src="../configuration.js"></script>
+  <script src="options.js"></script>
+</body>
+</html>
