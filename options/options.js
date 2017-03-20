@@ -1,4 +1,4 @@
-/* Globals: configuration */
+/* Globals: insignia, configuration */
 
 ;(function() {
   'use strict'
@@ -14,6 +14,20 @@
 
   // -----------------------------------------------------------------------------
   // Events
+
+  document.getElementById('js-add-mapping').addEventListener('click', preventDefault(function addMapping(event) {
+    let item = document.querySelector('.item').cloneNode(true)
+    document.getElementById('js-pages-mapping').appendChild(item)
+  }), false)
+
+  document.getElementById('js-pages-mapping').addEventListener('click', preventDefault(function deleteMapping(event) {
+    let target = event.target
+
+    if (target.classList.contains('js-delete-mapping')) { // TODO: don't delete the last one
+      target.parentElement.remove()
+    }
+  }), false)
+
 
   document.getElementById('save').addEventListener('click', function save() {
     let newValues = {}
@@ -42,6 +56,11 @@
   // -----------------------------------------------------------------------------
   // Start
 
+  // Start multiselect
+  insignia(document.querySelector('.js-input-destinations'))
+
+
+  // Setup all `new` flags
   chrome.storage.local.get({ justUpdated: 0 }, function(items) {
     if (items.justUpdated > 0) {
       let newItems = document.getElementsByClassName('new')
@@ -56,6 +75,7 @@
     }
   })
 
+  // Set existing values
   configuration.forEachCurrent(function(key, value) {
     if(! elements[key]) return
 
@@ -63,9 +83,20 @@
     elements[key].value = value
   })
 
+
+  // -----------------------------------------------------------------------------
+  // Utils
+
   function getInputValue(input) {
     if (! input) return null
     if (input.type === 'checkbox') return input.checked
     return input.value
+  }
+
+  function preventDefault(fn) {
+    return function(event) {
+      event.preventDefault()
+      fn(event)
+    }
   }
 })()

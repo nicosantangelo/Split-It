@@ -1,6 +1,7 @@
 ;(function () {
   var DEFAULT_CONFIGURATION = {
     sitePage      : "https://keep.google.com",
+    siteMapping   : {}, // { iframeSrc: [ destinations ] }
     iframeWidth   : 25,
     expandOnHover : false
   }

@@ -27,7 +27,7 @@
 
       // TODO: Change this to work only on the selected urls
       // TODO: Add exceptions
-      if (true) {
+      if (false) {
         addResizeHandle()
         loadIframe()
         addShowHideButton()
