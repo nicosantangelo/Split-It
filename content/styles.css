@@ -49,7 +49,7 @@
   background-color: #808080;
 }
 
-.__drag-frame {
+.__resizing-handle {
   height: 60px;
   width: 9px;
   margin-right: -6px;
@@ -64,7 +64,7 @@
   cursor: w-resize;
   z-index: 9999;
 }
-.__resizing-box {
+.__resizing-guide {
   height: 100%;
   top: 0;
   position: fixed;
@@ -72,11 +72,11 @@
   background-color: #FFFF00;
   z-index: 6;
 }
-.__drag-frame:hover{
+.__resizing-handle:hover {
   box-shadow: 0 0 12px 3px #FFF, 0 0 25px 0 #FFF;
 }
 
-.__iframe-actions a.onoff{
+.__iframe-actions a.onoff {
   font-family: sans-serif;
   color: #FFF;
   font-size: 11px;
