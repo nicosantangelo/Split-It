@@ -3,7 +3,7 @@
 // -----------------------------------------------------------------------------
 // Messages from the front-end
 
-chrome.extension.onMessage.addListener(function (request, sender, sendResponse) {
+chrome.extension.onMessage.addListener(function(request, sender, sendResponse) {
   switch(request.action) {
     case 'openOptions':
       openOptionsPage()
@@ -41,17 +41,19 @@ chrome.runtime.onInstalled.addListener(function(details) {
 // Intercept Web Requests
 
 // TODO: Update on options save
-configuration.get('sitePage', function(sitePage) {
-  let hosts = getHostVariations(sitePage)
+configuration.get('siteMapping', function(siteMapping) {
+  let baseURLs = getObjectValues(siteMapping).map(getHostVariations).join(' ')
+  let hosts = getObjectValues(siteMapping).map(getHostVariations).join(' ')
 
   chrome.webRequest.onHeadersReceived.addListener(function(details) {
+    // TODO: Use details.url to change headers
+
     let responseHeaders = details.responseHeaders
 
     for (let i = 0; i < responseHeaders.length; i++) {
       let header = responseHeaders[i]
-      let isCSPHeader = /content-security-policy/i.test(header.name)
 
-      if (isCSPHeader) {
+      if (isCSPHeader(header)) {
         let newCSP = header.value
           .replace('script-src', `script-src ${hosts}`)
           .replace('child-src', `child-src ${hosts}`)
@@ -59,8 +61,9 @@ configuration.get('sitePage', function(sitePage) {
           .replace('frame-src', `frame-src ${hosts}`)
 
         header.value = newCSP
+
       } else if (isFrameHeader(header)) {
-        responseHeaders.splice(i, 1) // Remove header
+        responseHeaders.splice(i, 1) // Removes the header
       }
     }
 
@@ -73,13 +76,19 @@ configuration.get('sitePage', function(sitePage) {
 })
 
 
-chrome.webRequest.onHeadersReceived.addListener(function(info) {
- let responseHeaders = info.responseHeaders
+chrome.webRequest.onHeadersReceived.addListener(function(details) {
+  // TODO: Use details.url to change headers
+ let responseHeaders = details.responseHeaders
 
   for (let i = 0; i < responseHeaders.length; i++) {
     let header = responseHeaders[i]
 
-    if (isFrameHeader(header)) {
+    if (isCSPHeader(header)) {
+      let newCSP = header.value.search('frame-ancestors') !== -1 ? '' : header.value
+
+      header.value = newCSP
+
+    } else if (isFrameHeader(header)) {
       responseHeaders.splice(i, 1) // Remove header
     }
   }
@@ -89,12 +98,14 @@ chrome.webRequest.onHeadersReceived.addListener(function(info) {
 }, {
   urls: [ '*://*/*' ], // Pattern to match all http(s) pages
   types: [ 'sub_frame' ]
-}, ['blocking', 'responseHeaders'])
+}, [
+'blocking',
+'responseHeaders'
+])
 
 
 // -----------------------------------------------------------------------------
 // Utils
-
 
 function openOptionsPage() {
   let optionsId  = chrome.i18n.getMessage("@@extension_id") + '/options.html'
@@ -116,6 +127,11 @@ function openOptionsPage() {
   })
 }
 
+
+function isCSPHeader(header) {
+  return /content-security-policy/.test(header.name.toLowerCase())
+}
+
 function isFrameHeader(header) {
   let headerName = header.name.toLowerCase()
   return headerName == 'x-frame-options' || headerName == 'frame-options'
@@ -127,4 +143,9 @@ function getHostVariations(url) {
   url = url.replace(/https?:\/\/(www\.)?/, '')
 
   return `www.${url} ${url}`
+}
+
+
+function getObjectValues(obj) {
+  return Object.keys(obj).map(function(property) { return obj[property] })
 }

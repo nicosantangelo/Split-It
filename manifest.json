@@ -1,8 +1,8 @@
 {
   "manifest_version": 2,
-  "name": "SplitGmail",
-  "description": "Add any site you like into other google products",
-  "short_name": "SplitGmail",
+  "name": "Split/It",
+  "description": "Add any site you like as a sidebar to other sites.",
+  "short_name": "Split/It",
   "version": "1.0.0",
   "icons": {
     "18": "icons/18.png",

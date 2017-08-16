@@ -2,103 +2,104 @@
   'use strict'
 
   let extensionActive = true
-  let insideIframe = false
 
-  console.log("GKeep extension loading for '" + document.URL + "'...")
+  let $handle = $('<div>', { 'class': '__drag-frame' })
+  let $resizingBox = $('<div>', { 'class': '__resizing-box' })
+
+  let gearPath = chrome.extension.getURL('images/gear.png')
 
   configuration.get(function(config) {
     config = Object.assign({}, configuration.DEFAULT, config)
 
-    let gearPath = chrome.extension.getURL('images/gear.png')
-    let isVisible = true
+    let isVisible = config.isVisible != null ? config.isVisible : true
 
-    let $gmailHTML = null
-    let $outerframe = null
-
-    let globalPageX = 0
-
-    let $handle = $('<div>', { 'class': '__drag-frame' })
-    let $resizingBox = $('<div>', { 'class': '__resizing-box' })
-
-    let currentWidth = config.iframeWidth || 25
+    widthManager.setCurrent(config.iframeWidth)
 
     try {
       let URL = document.URL
+      let ran = false
 
-      // TODO: Change this to work only on the selected urls
+      console.log('[Split/It] Running Split/It with the current configuration', config)
+
       // TODO: Add exceptions
-      if (false) {
-        addResizeHandle()
-        loadIframe()
-        addShowHideButton()
+      for(let baseURL in config.siteMapping) {
+        if (document.URL.search(baseURL) !== -1) {
+          let url = config.siteMapping[baseURL]
+          ran = true
 
-        if(! isVisible) hideIframe()
+          console.log(`[Split/It] Loading ${url} into ${document.URL}`)
+          start(url)
+          break
+        }
       }
+
+      if (! ran) console.log(`[Split/It] Coudn't find a valid sidebar for ${document.URL}. Valid options are ${config.siteMapping}`)
+
     } catch (error) {
-      console.warn("An error ocurred trying to run the extension", error)
+      console.warn('[Split/It] An error ocurred trying to run the extension', error)
+    }
+
+    function start(url) {
+      addResizeHandle()
+      iframe.load(url)
+      addShowHideButton(url)
+
+      if(! isVisible) iframe.hide()
     }
 
     function addResizeHandle() {
+      console.log('[Split/It] Adding resize handler')
+
       $resizingBox.hide()
-      $handle.css('right', currentWidth + '%')
+      $handle.css('right', widthManager.asPercentage())
       $('html body').append($handle).append($resizingBox)
 
       let isResizing = false
-      let startPosition = null
-      let baseWidth = null
+      let startXPosition = null
 
-      $(document).mousemove(event => {
+      $(document).mousemove(function(event) {
         if(! isResizing) return
+        if(! startXPosition) startXPosition = event.pageX
 
-        if(! startPosition) {
-          startPosition = event.pageX
-        }
+        let xPosDiff = (event.pageX || 0) - startXPosition
+        xPosDiff = xPosDiff || 0
 
-        let windowWidth = $(document).outerWidth()
-        let diff = (event.pageX || globalPageX) - startPosition
-        diff = diff || 0
+        widthManager.updateCurrentForMousePosition(xPosDiff)
 
-        let percentage = 100 * diff / windowWidth
-
-        currentWidth = Math.max(baseWidth - percentage,  100 * 100 / windowWidth)
-
-        $handle.css('right', currentWidth + '%')
-
-        let css = baseWidth <= currentWidth
-          ? { right: baseWidth + '%',    width: (currentWidth - baseWidth) + '%' }
-          : { right: currentWidth + '%', width: (baseWidth - currentWidth) + '%' }
-
-        $resizingBox.css(css)
+        $handle.css('right', widthManager.asPercentage())
+        $resizingBox.css(widthManager.currentCSS())
       })
 
-      $handle.mousedown(preventDefault(() => {
+      $handle.mousedown(preventDefault(function() {
         isResizing = true
-        baseWidth = currentWidth
+        widthManager.record()
 
         $resizingBox.css('width', 0).show()
         $(document).css('cursor', 'move')
       }))
 
-      $(document).mouseup(preventDefault(() => {
+      $(document).mouseup(preventDefault(function() {
         if(! isResizing) return
 
         isResizing = false
-        startPosition = null
+        startXPosition = null
 
         $resizingBox.hide()
-        resizeIframe()
+        iframe.resize()
         $('body').css('cursor', 'auto')
 
         // Save configuration
-        configuration.set({ iframeWidth: toFixed(currentWidth, 2) })
+        configuration.set({ iframeWidth: widthManager.toFixed() })
       }))
     }
 
 
-    function addShowHideButton() {
+    function addShowHideButton(url) {
+      console.log('[Split/It] Adding Show/Hide buttons', URLToName(url))
+
       // TODO: Wording and class here
       let template = `<div class="__iframe-actions">
-        <a href="#" class="onoff">Hide</a>
+        <a href="#" class="onoff">Hide ${URLToName(url)}</a>
         <a href="#" class="options">
           <img src="${gearPath}" alt="Grear"/>
         </a>
@@ -106,101 +107,141 @@
 
       $('html body').append(template)
 
-      $('.__iframe-actions .onoff').click(preventDefault(toggleIFrame))
-
-      $('.__iframe-actions .options').click(preventDefault(() =>
-        chrome.extension.sendMessage({ action: 'openOptions' })
-      ))
+      $('.__iframe-actions .onoff').click(preventDefault(function() {
+        iframe.toggle(url)
+      }))
+      $('.__iframe-actions .options').click(preventDefault(chromeMessages.openOptions))
     }
-
-    function loadIframe() {
-      $gmailHTML = $('html')
-      extensionActive = true
-
-      $outerframe = $('#embedded-frame')
-
-      if ($outerframe.length === 0) {
-        $outerframe = $('<div>', { id: 'embedded-frame' }).append(`<iframe src="${config.sitePage}" frameborder="0"></iframe>`)
-        resizeIframe()
-
-        $('html body').prepend($outerframe)
-
-        if (config.expandOnHover) {
-          $gmailHTML.mouseenter(collapseIframe)
-          $outerframe.mouseout(collapseIframe)
-        }
-      }
-      else {
-        resizeIframe()
-        $outerframe.toggleClass('hidden', false);
-      }
-
-      $handle.show()
-      $('.__iframe-actions .onoff').text('Hide')
-      chrome.extension.sendMessage({ action: 'visibleChange', data: { isVisible: true } }, function (response) {})
-    }
-
-    function collapseIframe() {
-      insideIframe = false
-      $outerframe.stop(true, false).animate({ 'width': currentWidth + '%' }, 0)
-    }
-
-    function resizeIframe() {
-      $gmailHTML.css({  'width': (100 - currentWidth) + '%' })
-      $outerframe.css({ 'width': currentWidth + '%' })
-
-      window.dispatchEvent(new Event('resize'))
-    }
-
-    function hideIframe() {
-      extensionActive = false
-
-      $gmailHTML.css({ 'width': '100%' })
-      $outerframe.toggleClass('hidden', true)
-      $handle.hide()
-
-      $('.__iframe-actions .onoff').text('Show')
-
-      chrome.extension.sendMessage({ action: 'visibleChange', data: { isVisible: false } }, function (response) {})
-    }
-
-    function toggleIFrame() {
-      insideIframe = false
-
-      if (extensionActive) {
-        hideIframe()
-      } else {
-        loadIframe()
-      }
-    }
-
-    insideIframe = false
-
-    chrome.extension.onMessage.addListener(function (request, sender, sendResponse) {
-      const HOVER_WIDTH = '70%'
-
-      if (request.action == 'mousemove') {
-        let shouldAnimateFrame = config.expandOnHover && extensionActive && ! insideIframe
-
-        if(shouldAnimateFrame && request.e.pageX > 50 && HOVER_WIDTH > currentWidth) {
-          insideIframe = true
-          $outerframe.stop(true, false).animate({ 'width': HOVER_WIDTH }, 0)
-        }
-
-        globalPageX = request.e.pageX + $outerframe.position().left
-        $(document).trigger('mousemove')
-
-      } else if (request.action == 'mouseup') {
-        $(document).trigger('mouseup')
-      }
-    })
-
-    console.log("Iframe finished loading.")
   })
 
 
+  // -------------------------------------
+  // Utils
+
+  const widthManager = {
+    current: null,
+    last: null,
+
+    setCurrent(width) {
+      this.current = width || 25
+    },
+
+    record() {
+      this.last = this.current
+    },
+
+    updateCurrentForMousePosition(xPosDiff) {
+      let windowWidth = $(document).outerWidth()
+      let percentage = 100 * xPosDiff / windowWidth
+
+      this.current = Math.max(this.last - percentage,  100 * 100 / windowWidth)
+
+      return this.current
+    },
+
+    currentCSS() {
+      return this.last <= this.current
+        ? { right: this.last + '%',    width: (this.current - this.last) + '%' }
+        : { right: this.current + '%', width: (this.last - this.current) + '%' }
+    },
+
+    asPercentage() {
+      return `${this.current}%`
+    },
+
+    toFixed() {
+      return toFixed(this.current, 2)
+    }
+  }
+
+  const iframe = {
+    id: '__splitit-embedded-frame',
+
+    active: false,
+    $html : [],
+    $outer: [],
+
+    load(src) {
+      console.log(`[Split/It - iframe] Injecting ${src} as an iframe`)
+
+      this.activate()
+
+      if (this.outerFrameExists()) {
+        this.resize()
+        this.$outer.toggleClass('hidden', false)
+      } else {
+        this.$outer = $('<div>', { id: this.id }).append(`<iframe src="${src}" frameborder="0"></iframe>`)
+        this.resize()
+
+        console.log(this.$outer)
+        this.$outer.prependTo('body')
+      }
+
+      $handle.show()
+
+      $('.__iframe-actions .onoff').text(function(index, text) {
+        return text.replace('Show', 'Hide')
+      })
+
+      chromeMessages.changeVisibility(true)
+    },
+
+    hide() {
+      this.deactivate()
+
+      $handle.hide()
+
+      $('.__iframe-actions .onoff').text(function(index, text) {
+        return text.replace('Hide', 'Show')
+      })
+
+      chromeMessages.changeVisibility(false)
+      window.dispatchEvent(new Event('resize'))
+    },
+
+    resize() {
+      // this.$html.css({  'width': (100 - widthManager.current) + '%' }) adjust html width
+      this.$outer.css({ 'width': widthManager.asPercentage() })
+      window.dispatchEvent(new Event('resize'))
+    },
+
+    collapse() {
+      this.$outer.stop(true, false).animate({ 'width': widthManager.asPercentage() }, 0)
+    },
+
+    toggle(url) {
+      this.active ? this.hide() : this.load(url)
+    },
+
+    outerFrameExists() {
+      return this.$outer.length > 0
+    },
+
+    activate() {
+      this.$html  = $('html')
+      this.$outer = $(`#${this.id}`)
+      this.active = true
+    },
+
+    deactivate() {
+      this.$html.css({ 'width': '100%' })
+      this.$outer.toggleClass('hidden', true)
+      this.active = false
+    }
+  }
+
+  const chromeMessages = Object.freeze({
+    openOptions() {
+      chrome.extension.sendMessage({ action: 'openOptions' })
+    },
+
+    changeVisibility(isVisible) {
+      chrome.extension.sendMessage({ action: 'changeVisibility', data: { isVisible: isVisible } })
+    }
+  })
+
   function preventDefault(fn) {
-    return event => {
+    return function(event) {
       event.preventDefault()
       fn(event)
     }
@@ -208,5 +249,13 @@
 
   function toFixed(number, decimals) {
     return parseFloat(number.toFixed(decimals))
+  }
+
+  function URLToName(url) {
+    return url
+      .replace(/https?:\/\/(www\.)?/, '') // remove protocol
+      .split('.')                         // remove suffix
+      .slice(0, -1)
+      .join('.')
   }
 })()
