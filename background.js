@@ -4,7 +4,7 @@
 // Messages from the front-end
 
 chrome.extension.onMessage.addListener(function(request, sender, sendResponse) {
-  switch(request.action) {
+  switch (request.action) {
     case 'openOptions':
       openOptionsPage()
       break
@@ -12,6 +12,7 @@ chrome.extension.onMessage.addListener(function(request, sender, sendResponse) {
       configuration.set({ isVisible: request.data.isVisible })
       break
     default:
+      chrome.tabs.sendMessage(sender.tab.id, request, function (response) {})
       break
   }
 })

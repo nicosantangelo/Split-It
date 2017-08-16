@@ -18,7 +18,7 @@
           let url = config.siteMapping[baseURL]
 
           console.log(`[Split/It] Loading ${url} into ${document.URL}`)
-          start(url, config.isVisible)
+          inject(url, config.isVisible)
           ran = true
           break
         }
@@ -31,7 +31,24 @@
     }
   })
 
-  function start(url, isVisible) {
+  chrome.extension.onMessage.addListener(function (request, sender, sendResponse) {
+    let $document = $(document)
+
+    switch (request.action) {
+      case 'mousemove':
+        resizing.updatePageX(request.data.pageX)
+        resizing.triggerMouseMove()
+        break
+      case 'mouseup':
+        resizing.triggerMouseUp()
+        break
+      default:
+        break
+    }
+  })
+
+
+  function inject(url, isVisible) {
     iframe.load(url)
     resizing.load(url)
     actions.load(url)
@@ -106,15 +123,20 @@
       this.$html.css({ 'width': '100%' })
       this.$outer.toggleClass('hidden', true)
       this.active = false
+    },
+
+    getPosition(direction) {
+      return this.$outer.position()
     }
   }
 
 
   const resizing = {
     isResizing: false,
+    pageX: 0,
 
-    $handle: $('<div>', { 'class': '__resizing-handle' }),
-    $guide: $('<div>', { 'class': '__resizing-guide' }),
+    $handle: $('<div>', { 'class': '__splitit-resizing-handle' }),
+    $guide: $('<div>', { 'class': '__splitit-resizing-guide' }),
 
     load() {
       console.log('[Split/It] Adding resize handler')
@@ -128,9 +150,10 @@
       })
 
       this.onResize(function(event) {
+        if(! event) event = {}
         if(! startXPosition) startXPosition = event.pageX
 
-        let xPosDiff = (event.pageX || 0) - startXPosition
+        let xPosDiff = (event.pageX || resizing.pageX) - startXPosition
         xPosDiff = xPosDiff || 0
 
         widthManager.updateCurrentForMousePosition(xPosDiff)
@@ -152,8 +175,12 @@
       this.$handle.appendTo('body')
     },
 
+    triggerMouseDown() {},
+    triggerMouseMove() {},
+    triggerMouseUp() {},
+
     onResizeStart(callback) {
-      let onMouseDown = function(event) {
+      this.triggerMouseDown = function(event) {
         this.isResizing = true
 
         callback(event)
@@ -162,11 +189,11 @@
         $('body').css('cursor', 'move')
       }.bind(this)
 
-      this.$handle.mousedown(preventDefault(onMouseDown))
+      this.$handle.on('mousedown', preventDefault(this.triggerMouseDown))
     },
 
     onResize(callback) {
-      let onMouseMove = function(event) {
+      this.triggerMouseMove = function(event) {
         if(! this.isResizing) return
 
         callback(event)
@@ -175,11 +202,11 @@
         this.$guide.css(widthManager.currentCSS())
       }.bind(this)
 
-      $(document).mousemove(onMouseMove)
+      $(document).on('mousemove', this.triggerMouseMove)
     },
 
     onResizeEnd(callback) {
-      let onMouseUp = function(event) {
+      this.triggerMouseUp = function(event) {
         if(! this.isResizing) return
 
         this.isResizing = false
@@ -190,7 +217,7 @@
         $('body').css('cursor', 'auto')
       }.bind(this)
 
-      $(document).mouseup(preventDefault(onMouseUp))
+      $(document).on('mouseup', preventDefault(this.triggerMouseUp))
     },
 
     show() {
@@ -199,6 +226,10 @@
 
     hide() {
       this.$handle.hide()
+    },
+
+    updatePageX(pageX) {
+      this.pageX = pageX + iframe.getPosition().left
     }
   }
 

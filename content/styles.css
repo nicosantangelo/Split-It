@@ -27,7 +27,7 @@
 }
 
 
-.__iframe-actions {
+.__splitit-actions {
   background-color: rgba(45, 45, 45, 0.6);
   position: fixed;
   top: 1px;
@@ -37,7 +37,7 @@
   z-index: 9999;
 }
 
-.__iframe-actions .options img {
+.__splitit-actions .__splitit-options img {
   vertical-align: middle;
   margin-left: 4px;
 }
@@ -49,7 +49,7 @@
   background-color: #808080;
 }
 
-.__resizing-handle {
+.__splitit-resizing-handle {
   height: 60px;
   width: 9px;
   margin-right: -6px;
@@ -64,7 +64,7 @@
   cursor: w-resize;
   z-index: 9999;
 }
-.__resizing-guide {
+.__splitit-resizing-guide {
   height: 100%;
   top: 0;
   position: fixed;
@@ -72,11 +72,11 @@
   background-color: #FFFF00;
   z-index: 6;
 }
-.__resizing-handle:hover {
+.__splitit-resizing-handle:hover {
   box-shadow: 0 0 12px 3px #FFF, 0 0 25px 0 #FFF;
 }
 
-.__iframe-actions a.onoff {
+.__splitit-actions .__splitit-onoff {
   font-family: sans-serif;
   color: #FFF;
   font-size: 11px;

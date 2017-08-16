@@ -21,11 +21,17 @@
         "content/script.js"
       ],
       "run_at": "document_end"
-    }
+    },
+    {
+      "all_frames": true,
+      "css": [],
+      "js": [ "vendor/jquery-3.2.0.min.js", "inject/script.js" ],
+      "matches": [ "<all_urls>" ]
+   }
   ],
   "background": {
     "scripts": ["configuration.js", "background.js"],
-    "persistent": true
+    "persistent": false
   },
   "options_page": "options/options.html",
   "permissions": [

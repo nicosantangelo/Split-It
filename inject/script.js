@@ -3,6 +3,9 @@
 ;(function() {
   'use strict'
 
+  // TODO: Well this is awkard...
+  if (document.URL !== "https://keep.google.com/") return
+
   $('html')
     .mousemove(function(event) {
       chrome.extension.sendMessage({
