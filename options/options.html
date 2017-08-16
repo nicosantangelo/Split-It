@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <title>SplitGmail</title>
+  <title>Split/It</title>
 
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
@@ -12,8 +12,8 @@
 <body>
 
   <header>
-    <!-- <img src="../icons/128.png" width="104" alt="SplitGmail"> -->
-    <h1>SplitGmail</h1>
+    <!-- <img src="../icons/128.png" width="104" alt="Split/It"> -->
+    <h1>Split/It</h1>
   </header>
 
   <div class="configuration">
@@ -23,9 +23,10 @@
           <b>Sites</b>
           <a id="js-add-mapping" href="#">add</a>
         </div>
+        <small>Each destination separated by a space</small>
         <ul id="js-pages-mapping" class="pages-mapping">
           <li class="item">
-            Show <input type="text" class="input js-input-iframesrc" placeholder="https://iframe.com"> on <span><input type="text" class="input js-input-destinations" placeholder="https://destination.com"></span> <a class="js-delete-mapping" href="#">delete</a>
+            Show <input type="text" class="input js-input-iframesrc" placeholder="iframe.com"> on <span><input type="text" class="input js-input-baseurls" placeholder="destination.com"></span> <a class="js-delete-mapping" href="#">delete</a>
           </li>
         </ul>
       </div>
@@ -33,27 +34,28 @@
       <div class="option">
         Width of the iframe <input type="number" class="input iframe-width-input" name="iframeWidth" id="iframeWidth" placeholder="25"> %
       </div>
-
-      <div class="option">
-        <input type="checkbox" name="expandOnHover" id="expandOnHover">
-        Should expand on hover?
-      </div>
     </div>
 
     <br />
 
     <div class="save-button">
-      <div id="save" class="btn btn-primary">Save changes</div>
+      <div id="js-save" class="btn btn-primary">Save changes</div>
     </div>
     &nbsp;&nbsp;
 
     <br /> <br />
 
     <div id="notice" class="notice hidden">
-      <span class="close-notice">x</span>
+      <span class="js-close-notice close-notice">x</span>
       <b>Options saved!</b>
     </div>
   </div>
+
+  <template class="js-item-template">
+    <div class="item">
+      Show <input type="text" class="input js-input-iframesrc" placeholder="https://iframe.com"> on <span><input type="text" class="input js-input-baseurls" placeholder="destination.com"></span> <a class="js-delete-mapping" href="#">delete</a>
+    </div>
+  </template>
 
   <script src="../vendor/insignia.min.js"></script>
   <script src="../configuration.js"></script>

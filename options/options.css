@@ -81,7 +81,7 @@ ul.pages-mapping {
 }
 
 .pages-mapping .input {
-  max-width: 170px;
+  max-width: 240px;
   margin: 0 2px;
 }
 
@@ -156,7 +156,7 @@ small.new {
   border: 1px solid #CCC;
   background: #FFF;
   border-radius: 5px;
-  min-width: 170px;
+  min-width: 240px;
   margin: 0 3px;
   cursor: text;
   display: inline-block;
