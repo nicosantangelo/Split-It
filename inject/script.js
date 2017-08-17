@@ -3,8 +3,7 @@
 ;(function() {
   'use strict'
 
-  // TODO: Well this is awkard...
-  if (document.URL !== "https://keep.google.com/") return
+  if (window.name === 'splitit') return
 
   $('html')
     .mousemove(function(event) {

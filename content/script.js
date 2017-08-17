@@ -76,7 +76,7 @@
         this.resize()
         this.$outer.toggleClass('hidden', false)
       } else {
-        this.$outer = $('<div>', { id: this.id }).append(`<iframe src="${src}" frameborder="0"></iframe>`)
+        this.$outer = $('<div>', { id: this.id }).append(`<iframe name="splitit" src="${src}" frameborder="0"></iframe>`)
         this.resize()
 
         this.$outer.prependTo('body')
