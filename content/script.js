@@ -24,29 +24,35 @@
         }
       }
 
-      if (! ran) console.log(`[Split/It] Coudn't find a valid sidebar for ${document.URL}. Valid options are ${config.siteMapping}`)
+      if (ran) {
+        listenToChromeMessages()
+      } else {
+        console.log(`[Split/It] Coudn't find a valid sidebar for ${document.URL}. Valid options are ${config.siteMapping}`)
+      }
 
     } catch (error) {
       console.warn('[Split/It] An error ocurred trying to run the extension', error)
     }
   })
 
-  chrome.extension.onMessage.addListener(function (request, sender, sendResponse) {
-    let $document = $(document)
 
-    switch (request.action) {
-      case 'mousemove':
-        resizing.updatePageX(request.data.pageX)
-        resizing.triggerMouseMove()
-        break
-      case 'mouseup':
-        resizing.triggerMouseUp()
-        break
-      default:
-        break
-    }
-  })
+  function listenToChromeMessages() {
+    chromeMessages.onMessage(function(request) {
+      let $document = $(document)
 
+      switch (request.action) {
+        case 'mousemove':
+          resizing.updatePageX(request.data.pageX)
+          resizing.triggerMouseMove()
+          break
+        case 'mouseup':
+          resizing.triggerMouseUp()
+          break
+        default:
+          break
+      }
+    })
+  }
 
   function inject(url, isVisible) {
     iframe.load(url)
@@ -68,7 +74,7 @@
     $outer: [],
 
     load(src) {
-      console.log(`[Split/It - iframe] Injecting ${src} as an iframe`)
+      console.log(`[Split/It] Injecting ${src} as an iframe`)
 
       this.activate()
 
@@ -322,6 +328,12 @@
 
     changeVisibility(isVisible) {
       chrome.extension.sendMessage({ action: 'changeVisibility', data: { isVisible: isVisible } })
+    },
+
+    onMessage(callback) {
+      chrome.extension.onMessage.addListener(function(request, sender, sendResponse) {
+        callback(request)
+      })
     }
   })
 

@@ -1,9 +1,8 @@
-// This script runs inside the injected iframe
-
 ;(function() {
   'use strict'
 
-  if (window.name === 'splitit') return
+  // This script runs inside the injected iframe
+  if (window.name !== 'splitit') return
 
   $('html')
     .mousemove(function(event) {
