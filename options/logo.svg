@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="296px" height="134px" viewBox="0 0 296 134" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <!-- Generator: Sketch 46.1 (44463) - http://www.bohemiancoding.com/sketch -->
+    <title>Group</title>
+    <desc>Created with Sketch.</desc>
+    <defs></defs>
+    <g id="Both" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <g id="Group" transform="translate(4.000000, 4.000000)">
+            <g id="Icon">
+                <path d="M105.893494,1.12170254 C109.963446,-3.60469341 -3.99520468,130.940045 1.17050339,124.79573 C6.33621147,118.651415 101.823543,5.8480985 105.893494,1.12170254 Z" id="Line" stroke="#FFFFFF" stroke-width="10" stroke-linecap="square"></path>
+                <polygon id="Triangle" fill="#4A90E2" transform="translate(55.000000, 65.000000) scale(-1, -1) translate(-55.000000, -65.000000) " points="3 126 107 4 51.2698294 4 3 4"></polygon>
+                <polygon id="Triangle" fill="#403D3D" points="0 122 104 0 48.2698294 0 0 0"></polygon>
+            </g>
+            <text id="Split-/-it" font-family="MonotypeCorsiva, Monotype Corsiva" font-size="50" font-weight="normal">
+                <tspan x="138.047852" y="76" fill="#000000">Split</tspan>
+                <tspan x="223.008789" y="76" fill="#4A90E2"> / it</tspan>
+            </text>
+        </g>
+    </g>
+</svg>
