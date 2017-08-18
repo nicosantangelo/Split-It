@@ -11,10 +11,29 @@ chrome.extension.onMessage.addListener(function(request, sender, sendResponse) {
     case 'changeVisibility':
       configuration.set({ isVisible: request.data.isVisible })
       break
+    case 'changeStatus':
+      let iconSuffix = request.active ? '' : '-inactive'
+
+      chrome.browserAction.setIcon({
+        path: {
+          19: `icons/19${iconSuffix}.png`,
+          38: `icons/38${iconSuffix}.png`
+        },
+        tabId: sender.tab.id
+      })
+      break
     default:
       chrome.tabs.sendMessage(sender.tab.id, request, function (response) {})
       break
   }
+})
+
+
+// -----------------------------------------------------------------------------
+// Extension icon popup clicked
+
+chrome.browserAction.onClicked.addListener(function(tab) {
+  chrome.tabs.sendMessage(tab.id, { action: 'toggle' }, function() {})
 })
 
 
@@ -41,13 +60,14 @@ chrome.runtime.onInstalled.addListener(function(details) {
 // -----------------------------------------------------------------------------
 // Intercept Web Requests
 
-// TODO: Update on options save
 configuration.get('siteMapping', function(siteMapping) {
-  let baseURLs = getObjectValues(siteMapping).map(getHostVariations).join(' ')
-  let hosts = getObjectValues(siteMapping).map(getHostVariations).join(' ')
+  let baseURLs = Object.keys(siteMapping)
+  let hostURLs = getObjectValues(siteMapping)
+
+  let hosts = hostURLs.map(getHostVariations).join(' ')
 
   chrome.webRequest.onHeadersReceived.addListener(function(details) {
-    // TODO: Use details.url to change headers
+    if (! containsAnyOf(baseURLs, details.url)) return
 
     let responseHeaders = details.responseHeaders
 
@@ -74,35 +94,32 @@ configuration.get('siteMapping', function(siteMapping) {
     urls: ['<all_urls>'],
     types: ['main_frame']
   }, ['blocking', 'responseHeaders'])
-})
 
+  chrome.webRequest.onHeadersReceived.addListener(function(details) {
+    if (! containsAnyOf(hostURLs, details.url)) return
 
-chrome.webRequest.onHeadersReceived.addListener(function(details) {
-  // TODO: Use details.url to change headers
- let responseHeaders = details.responseHeaders
+    let responseHeaders = details.responseHeaders
 
-  for (let i = 0; i < responseHeaders.length; i++) {
-    let header = responseHeaders[i]
+    for (let i = 0; i < responseHeaders.length; i++) {
+      let header = responseHeaders[i]
 
-    if (isCSPHeader(header)) {
-      let newCSP = header.value.search('frame-ancestors') !== -1 ? '' : header.value
+      if (isCSPHeader(header)) {
+        let newCSP = header.value.search('frame-ancestors') !== -1 ? '' : header.value
 
-      header.value = newCSP
+        header.value = newCSP
 
-    } else if (isFrameHeader(header)) {
-      responseHeaders.splice(i, 1) // Remove header
+      } else if (isFrameHeader(header)) {
+        responseHeaders.splice(i, 1) // Remove header
+      }
     }
-  }
 
-  return { responseHeaders: responseHeaders }
+    return { responseHeaders: responseHeaders }
 
-}, {
-  urls: [ '*://*/*' ], // Pattern to match all http(s) pages
-  types: [ 'sub_frame' ]
-}, [
-'blocking',
-'responseHeaders'
-])
+  }, {
+    urls: [ '*://*/*' ], // Pattern to match all http(s) pages
+    types: [ 'sub_frame' ]
+  }, ['blocking', 'responseHeaders'])
+})
 
 
 // -----------------------------------------------------------------------------
@@ -147,6 +164,14 @@ function getHostVariations(url) {
 }
 
 
+function containsAnyOf(values, searched) {
+  return values.some(function(value) {
+    return ~searched.search(value)
+  })
+}
+
 function getObjectValues(obj) {
+  if (! obj) return []
+
   return Object.keys(obj).map(function(property) { return obj[property] })
 }

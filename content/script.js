@@ -6,7 +6,6 @@
 
     try {
       let URL = document.URL
-      let ran = false
 
       console.log('[Split/It] Running Split/It with the current configuration', config)
 
@@ -19,16 +18,13 @@
 
           console.log(`[Split/It] Loading ${url} into ${document.URL}`)
           inject(url, config.isVisible)
-          ran = true
-          break
+          listenToChromeMessages(url)
+          chromeMessages.activateIcon()
+          return
         }
       }
 
-      if (ran) {
-        listenToChromeMessages()
-      } else {
-        console.log(`[Split/It] Coudn't find a valid sidebar for ${document.URL}. Valid options are ${config.siteMapping}`)
-      }
+      console.log(`[Split/It] Coudn't find a valid sidebar for ${document.URL}. Valid options are ${config.siteMapping}`)
 
     } catch (error) {
       console.warn('[Split/It] An error ocurred trying to run the extension', error)
@@ -36,7 +32,7 @@
   })
 
 
-  function listenToChromeMessages() {
+  function listenToChromeMessages(url) {
     chromeMessages.onMessage(function(request) {
       let $document = $(document)
 
@@ -47,6 +43,9 @@
           break
         case 'mouseup':
           resizing.triggerMouseUp()
+          break
+        case 'toggle':
+          iframe.toggle(url)
           break
         default:
           break
@@ -102,7 +101,7 @@
     },
 
     resize() {
-      // this.$html.css({  'width': (100 - widthManager.current) + '%' }) adjust html width
+      // this.$html.css({  'width': (100 - widthManager.current) + '%' }) // adjust html width
       this.$outer.css({ 'width': widthManager.asPercentage() })
       window.dispatchEvent(new Event('resize'))
     },
@@ -328,6 +327,10 @@
 
     changeVisibility(isVisible) {
       chrome.extension.sendMessage({ action: 'changeVisibility', data: { isVisible: isVisible } })
+    },
+
+    activateIcon() {
+      chrome.extension.sendMessage({ action: 'changeStatus', active: true })
     },
 
     onMessage(callback) {
