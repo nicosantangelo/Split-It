@@ -57,9 +57,10 @@
 }
 
 .__splitit-actions .__splitit-onoff {
-  font-family: sans-serif;
-  color: #FFF;
   font-size: 11px;
+  vertical-align: middle;
+  color: #FFF;
+  font-family: sans-serif;
 }
 
 
