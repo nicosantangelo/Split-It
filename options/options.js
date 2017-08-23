@@ -200,14 +200,16 @@
       },
 
       getBaseURL: function(value) {
-        return item.querySelector(SELECTORS.baseurl).value
+        let baseURL = item.querySelector(SELECTORS.baseurl).value
+        return stripProtocol(baseURL)
       },
       setBaseURL: function(value) {
         item.querySelector(SELECTORS.baseurl).value = value
       },
 
       getIframeSrc: function(value) {
-        return item.querySelector(SELECTORS.iframesrc).value
+        let iframeSrc = item.querySelector(SELECTORS.iframesrc).value
+        return stripProtocol(iframeSrc)
       },
       setIframeSrc: function(value) {
         item.querySelector(SELECTORS.iframesrc).value = value
@@ -276,6 +278,10 @@
         return node
       }
     }
+  }
+
+  function stripProtocol(url) {
+    return url.replace(/^(http(s)?:)?\/\//, '')
   }
 
   function isEmptyObject(obj) {
