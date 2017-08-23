@@ -4,7 +4,7 @@
   // This script runs inside the injected iframe
   if (window.name !== 'splitit') return
 
-  $('html')
+  jQuery('html')
     .mousemove(function(event) {
       chrome.extension.sendMessage({
         action: 'mousemove',
@@ -16,8 +16,8 @@
     })
 
   // Try to bypass the tendency of some sites to detect frames
-  $('.external.authentication').attr('target', '_blank')
-  $('body').attr('id', 'extension-base')
+  jQuery('.external.authentication').attr('target', '_blank')
+  jQuery('body').attr('id', 'extension-base')
 
   function identity(x) { return x }
 })()

@@ -10,14 +10,9 @@ chrome.extension.onMessage.addListener(function(request, sender, sendResponse) {
       break
     case 'updateOption':
       configuration.get(function(config) {
-        // TODO: This for -> if clause is duplicated on the content script. Move into configuration?
-        for (let baseURL in config.siteMapping) {
-          if (request.url.search(baseURL) === -1) continue
+        config.optionsMapping[request.baseURL][request.key] = request.value
 
-          config.optionsMapping[baseURL][request.key] = request.value
-
-          configuration.set({ optionsMapping: config.optionsMapping })
-        }
+        configuration.set({ optionsMapping: config.optionsMapping })
       })
 
       break

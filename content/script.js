@@ -1,4 +1,4 @@
-;(function () {
+(function () {
   'use strict'
 
 
@@ -6,23 +6,17 @@
     config = configuration.setMissingDefaultValues(config)
 
     try {
-      let URL = document.URL
-
       console.log('[Split/It] Running Split/It with the following configuration', config)
 
       for (let baseURL in config.siteMapping) {
-        if (document.URL.search(baseURL) === -1) continue
+        if (document.URL.search(getHostname(baseURL)) === -1) continue
 
-        // Current site settings
-        let settings = {
-          url: config.siteMapping[baseURL],
-          options: config.optionsMapping[baseURL]
-        }
+        settings.load(baseURL, config)
 
-        widthManager.setCurrent(settings.options.width)
+        widthManager.setCurrent(settings.getOption('width'))
 
         console.log(`[Split/It] Loading ${settings.url} into ${document.URL}`)
-        return startExtension(settings) // break the loop
+        return startExtension() // break the loop
       }
 
       console.log(`[Split/It] Coudn't find a valid sidebar for ${document.URL}. Valid URLs are`, config.siteMapping)
@@ -36,31 +30,24 @@
   // -------------------------------------
   // Start
 
-  function startExtension(settings) {
-    let url = settings.url
-    let options = settings.options
-
-    iframe.load(url, options)
-    resizing.load(url, options)
-    actions.load(url, options)
+  function startExtension() {
+    iframe.load()
 
     listenToChromeMessages()
     chromeMessages.activateIcon()
 
-    if(! options.isVisible) iframe.hide()
+    if(! settings.getOption('isVisible')) iframe.hide()
   }
 
   function listenToChromeMessages() {
     chromeMessages.onMessage(function(request) {
-      let $document = $(document)
-
       switch (request.action) {
         case 'mousemove':
-          resizing.updatePageX(request.data.pageX)
-          resizing.triggerMouseMove()
+          resizing.setPageX(request.data.pageX + iframe.getPosition().left)
+          resizing.triggerResize()
           break
         case 'mouseup':
-          resizing.triggerMouseUp()
+          resizing.triggerResizeEnd()
           break
         case 'toggle':
           iframe.toggle()
@@ -75,76 +62,126 @@
   // -------------------------------------
   // Main Players
 
-  const iframe = {
-    id: '__splitit-embedded-frame',
-
-    active: false,
+  const settings = {
+    baseURL: null,
 
     url: null,
     options: null,
 
+    load(baseURL, config) {
+      this.baseURL = baseURL
+
+      this.url = config.siteMapping[baseURL]
+      this.options = config.optionsMapping[baseURL]
+    },
+
+    toggleOption(key) {
+      let value = ! this.getOption(key)
+      this.updateOption(key, value)
+      return value
+    },
+
+    getOption(key) {
+      return this.options[key]
+    },
+
+    updateOption(key, value) {
+      this.options[key] = value
+
+      let optionsMapping = {}
+      optionsMapping[this.baseURL] = this.options
+
+      configuration.set({ optionsMapping: optionsMapping })
+    }
+  }
+
+  const iframe = {
+    id: '__splitit-embedded-frame',
+
     $html : [],
     $outer: [],
 
-    load(url, options) {
-      console.log(`[Split/It] Injecting ${url} as an iframe`)
-
-      if (url) this.url = url
-      if (options) this.options = options
+    load() {
+      console.log(`[Split/It] Injecting ${settings.url} as an iframe`)
 
       this.activate()
 
       if (this.outerFrameExists()) {
-        this.resize()
-        this.$outer.toggleClass('hidden', false)
+        this.show()
       } else {
-        let src = url.search('//') === -1 ? `//${url}` : url
-
-        this.$outer = $('<div>', { id: this.id }).append(`<iframe name="splitit" src="${src}" frameborder="0"></iframe>`)
+        this.$outer = jQuery('<div>', { id: this.id }).append(`<iframe name="splitit" src="${settings.url}" frameborder="0"></iframe>`)
         this.resize()
 
         this.$outer.prependTo('body')
       }
 
-      resizing.show()
-      actions.show()
+      this.loadActions()
+      this.loadResizing()
+
+      return this
+    },
+
+    loadActions() {
+      actions
+        .load()
+        .attachToggle(this.toggle.bind(this))
+        .attachToggleHover(this.toggleHover.bind(this))
+    },
+
+    loadResizing() {
+      resizing
+        .load()
+        .attachResizeStart(function() {})
+        .attachResize(function() {})
+        .attachResizeEnd(this.resize.bind(this))
+    },
+
+    toggle() {
+      settings.getOption('isVisible') ? this.hide() : this.show()
+
+      let newIsVisible = settings.toggleOption('isVisible')
+      chromeMessages.changeVisibility(newIsVisible)
+    },
+
+    toggleHover() {
+      let newHoverOver = settings.toggleOption('hoverOver')
+      chromeMessages.changeVisibility(newHoverOver)
+
+      this.resize()
+    },
+
+    show() {
+      this.resize()
+
+      resizing.toggle()
+      actions.toggle('visibility')
+
+      this.$outer.toggleClass('hidden', false)
     },
 
     hide() {
       this.deactivate()
 
-      resizing.hide()
-      actions.hide()
+      resizing.toggle()
+      actions.toggle('visibility')
 
       window.dispatchEvent(new Event('resize'))
     },
 
     resize() {
-      if (this.options.hoverOver) {
+      if (settings.getOption('hoverOver')) {
+        this.$html.css({ 'width': this.$html.__splititwidth })
       } else {
-        // setup old width as prop, use it to recover on else
-        this.$html.css({  'width': (100 - widthManager.current) + '%' }) // adjust html width
+        this.$html.__splititwidth = this.$html.css('width')
+        this.$html.css({ 'width': widthManager.getComplementPercentage() })
       }
 
-      this.$outer.css({ 'width': widthManager.asPercentage() })
+      this.$outer.css({ 'width': widthManager.getCurrentPercentage() })
       window.dispatchEvent(new Event('resize'))
     },
 
     collapse() {
-      this.$outer.stop(true, false).animate({ 'width': widthManager.asPercentage() }, 0)
-    },
-
-    toggle() {
-      this.active ? this.hide() : this.load()
-    },
-
-    toggleHover() {
-      if (! this.options) this.options = { hoverOver: false }
-
-      this.options.hoverOver = ! this.options.hoverOver
-
-      this.options.hoverOver ? this.actions.deattach() : this.actions.deattach()
-      this.resize()
+      this.$outer.stop(true, false).animate({ 'width': widthManager.getCurrentPercentage() }, 0)
     },
 
     outerFrameExists() {
@@ -152,15 +189,13 @@
     },
 
     activate() {
-      this.$html  = $('html')
-      this.$outer = $(`#${this.id}`)
-      this.active = true
+      this.$html  = jQuery('html')
+      this.$outer = jQuery(`#${this.id}`)
     },
 
     deactivate() {
       this.$html.css({ 'width': '100%' })
       this.$outer.toggleClass('hidden', true)
-      this.active = false
     },
 
     getPosition(direction) {
@@ -171,103 +206,100 @@
 
   const resizing = {
     isResizing: false,
+    startXPosition: null,
     pageX: 0,
 
-    $handle: $('<div>', { 'class': '__splitit-resizing-handle' }),
-    $guide: $('<div>', { 'class': '__splitit-resizing-guide' }),
+    $handle: null,
+    $guide: null,
 
     load() {
       console.log('[Split/It] Adding resize handler')
 
-      let startXPosition = null
+      this.$handle = jQuery('<div>', { 'class': '__splitit-resizing-handle' })
+      this.$guide = jQuery('<div>', { 'class': '__splitit-resizing-guide' })
 
       this.append()
 
-      this.onResizeStart(function() {
-        widthManager.record()
-      })
-
-      this.onResize(function(event) {
-        if(! event) event = {}
-        if(! startXPosition) startXPosition = event.pageX
-
-        let xPosDiff = (event.pageX || resizing.pageX) - startXPosition
-        xPosDiff = xPosDiff || 0
-
-        widthManager.updateCurrentForMousePosition(xPosDiff)
-      })
-
-      this.onResizeEnd(function() {
-        startXPosition = null
-
-        iframe.resize()
-        configuration.set({ optionsMapping: optionsMapping })
-      })
+      return this
     },
 
     append() {
       this.$guide.hide()
       this.$guide.appendTo('body')
 
-      this.$handle.css('right', widthManager.asPercentage())
+      this.$handle.css('right', widthManager.getCurrentPercentage())
       this.$handle.appendTo('body')
     },
 
-    triggerMouseDown() {},
-    triggerMouseMove() {},
-    triggerMouseUp() {},
-
-    onResizeStart(callback) {
-      this.triggerMouseDown = function(event) {
+    attachResizeStart(callback) {
+      this.$handle.on('mousedown', preventDefault(function(event) {
         this.isResizing = true
+        widthManager.record()
 
-        callback(event)
+        callback && callback(event)
 
         this.$guide.css('width', 0).show()
-        $('body').css('cursor', 'move')
-      }.bind(this)
+        jQuery('body').css('cursor', 'move')
+      }.bind(this)))
 
-      this.$handle.on('mousedown', preventDefault(this.triggerMouseDown))
+      return this
     },
 
-    onResize(callback) {
-      this.triggerMouseMove = function(event) {
-        if(! this.isResizing) return
+    // TODO: This is not the best API (missbehaves if called more than once), but it works for now
+    attachResize(callback) {
+      jQuery(document)
+        .off('mousemove.splitit')
+        .on('mousemove.splitit', function(event) {
+          this.triggerResize(event, callback)
+        }.bind(this))
 
-        callback(event)
+      return this
+    },
+    triggerResize(event, callback) {
+      if(! this.isResizing) return
+      if(! event) event = {}
+      if(! this.startXPosition) this.startXPosition = event.pageX
 
-        this.$handle.css('right', widthManager.asPercentage())
-        this.$guide.css(widthManager.currentCSS())
-      }.bind(this)
+      let xPosDiff = (event.pageX || resizing.pageX) - this.startXPosition
+      xPosDiff = xPosDiff || 0
 
-      $(document).on('mousemove', this.triggerMouseMove)
+      widthManager.updateCurrentForMousePosition(xPosDiff)
+
+      callback && callback(event)
+
+      this.$handle.css('right', widthManager.getCurrentPercentage())
+      this.$guide.css(widthManager.currentCSS())
     },
 
-    onResizeEnd(callback) {
-      this.triggerMouseUp = function(event) {
-        if(! this.isResizing) return
+    attachResizeEnd(callback) {
+      jQuery(document)
+        .off('mouseup.splitit')
+        .on('mouseup.splitit', preventDefault(function(event) {
+          this.triggerResizeEnd(event, callback)
+        }.bind(this)))
 
-        this.isResizing = false
+      return this
+    },
+    triggerResizeEnd(event, callback) {
+      if(! this.isResizing) return
 
-        callback(event)
+      this.isResizing = false
+      this.startXPosition = null
 
-        this.$guide.hide()
-        $('body').css('cursor', 'auto')
-      }.bind(this)
+      callback && callback(event)
 
-      $(document).on('mouseup', preventDefault(this.triggerMouseUp))
+      settings.updateOption('width', widthManager.current)
+
+      this.$guide.hide()
+      jQuery('body').css('cursor', 'auto')
     },
 
-    show() {
-      this.$handle.show()
+    toggle() {
+      this.$handle.toggle()
     },
 
-    hide() {
-      this.$handle.hide()
-    },
-
-    updatePageX(pageX) {
-      this.pageX = pageX + iframe.getPosition().left
+    setPageX(pageX) {
+      this.pageX = pageX
     }
   }
 
@@ -275,65 +307,62 @@
   const actions = {
     id: '__splitit-actions',
 
-    load(url, options) {
-      if (! options.showMenu) return
+    load() {
+      if (! settings.getOption('showMenu')) return
 
-      console.log('[Split/It] Adding Show/Hide buttons', URLToName(url))
-
+      let siteName = getHostname(settings.url)
       let gearPath = chrome.extension.getURL('images/gear.png')
 
+      console.log('[Split/It] Adding Show/Hide buttons', siteName)
+
       let actionsHTML = `<div id="${this.id}" class="${this.id}">
-        <span class="__splitit-action">${URLToName(url)}: </span>
-        <a href="#" class="__splitit-action __splitit-toggle">Hide</a>
+        <span class="__splitit-action">${siteName}: </span>
+        <a href="#" class="__splitit-action __splitit-toggle-visibility">Hide</a>
         <a href="#" class="__splitit-action __splitit-toggle-hover">Deattach</a>
         <a href="#" class="__splitit-options">
           <img src="${gearPath}" alt="Grear" />
         </a>
       </div>`
 
-      $('body').append(actionsHTML)
+      jQuery('body').append(actionsHTML)
 
-      $('.__splitit-toggle').click(preventDefault(function() {
-        iframe.toggle()
+      jQuery('.__splitit-options').on('click', preventDefault(chromeMessages.openOptions))
+
+      return this
+    },
+
+    attachToggle(callback) {
+      jQuery('.__splitit-toggle-visibility').on('click', preventDefault(function(event) {
+        callback(event)
       }))
+      return this
+    },
 
-      $('.__splitit-toggle-hover', el).click(preventDefault(function() {
-        iframe.toggleHover()
+    attachToggleHover(callback) {
+      jQuery('.__splitit-toggle-hover').on('click', preventDefault(function(event) {
+        callback(event)
       }))
-
-      $('.__splitit-options', el).click(preventDefault(chromeMessages.openOptions))
+      return this
     },
 
-    show() {
-      $('.__splitit-toggle').text(function(index, text) {
-        return text.replace('Show', 'Hide')
-      })
+    toggle(key) {
+      let toggleEl = document.querySelector(`.__splitit-toggle-${key}`)
+      if (! toggleEl) throw new Error(`Tried to toggle a ${key} action, which does not exist`)
 
-      chromeMessages.changeVisibility(true)
-    },
+      let textMap = {
+        visibility: {
+          Show: 'Hide',
+          Hide: 'Show'
+        },
 
-    hide() {
-      $('.__splitit-toggle').text(function(index, text) {
-        return text.replace('Hide', 'Show')
-      })
+        hover: {
+          Deattach: 'Attach',
+          Attach: 'Deattach'
+        }
+      }[key]
 
-      chromeMessages.changeVisibility(false)
-    },
-
-    attach() {
-      $('.__splitit-toggle-hover').text(function(index, text) {
-        return text.replace('Attach', 'Deattach')
-      })
-
-      chromeMessages.changeHoverOver(true)
-    },
-
-    deattach() {
-      $('.__splitit-toggle').text(function(index, text) {
-        return text.replace('Deattach', 'Attach')
-      })
-
-      chromeMessages.changeHoverOver(false)
+      let text = toggleEl.textContent
+      toggleEl.textContent = toggleEl.textContent.replace(text, textMap[text])
     }
   }
 
@@ -351,7 +380,7 @@
     },
 
     updateCurrentForMousePosition(xPosDiff) {
-      let windowWidth = $(document).outerWidth()
+      let windowWidth = jQuery(document).outerWidth()
       let percentage = 100 * xPosDiff / windowWidth
 
       this.current = Math.max(this.last - percentage,  100 * 100 / windowWidth)
@@ -365,8 +394,12 @@
         : { right: this.current + '%', width: (this.last - this.current) + '%' }
     },
 
-    asPercentage() {
+    getCurrentPercentage() {
       return `${this.current}%`
+    },
+
+    getComplementPercentage() {
+      return `${100 - widthManager.current}%`
     },
 
     toFixed() {
@@ -392,7 +425,7 @@
     },
 
     updateOption(key, value) {
-      chrome.extension.sendMessage({ action: 'updateOption', key: key, value: value })
+      chrome.extension.sendMessage({ action: 'updateOption', key: key, value: value, baseURL: settings.baseURL })
     },
 
     onMessage(callback) {
@@ -417,11 +450,9 @@
     return parseFloat(number.toFixed(decimals))
   }
 
-  function URLToName(url) {
+  function getHostname(url) {
     return url
       .replace(/https?:\/\/(www\.)?/, '') // remove protocol
-      .split('.')                         // remove suffix
-      .slice(0, -1)
-      .join('.')
+      .replace(/\/$/, '')                 // remove trailing slash
   }
 })()

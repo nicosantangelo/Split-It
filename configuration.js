@@ -33,7 +33,7 @@
         chrome.storage.sync.get(DEFAULT_CONFIGURATION, callback)
       } else {
         chrome.storage.sync.get(key, function(result) {
-          callback(result[key])
+          callback(result[key] || DEFAULT_CONFIGURATION[key])
         })
       }
     },

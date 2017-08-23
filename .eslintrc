@@ -5,11 +5,9 @@
     "es6": true,
   },
   "globals": {
-    "chrome": true
-  },
-  "parserOptions": {
-    "ecmaVersion": 8,
-    "sourceType": "module"
+    "chrome": true,
+    "configuration": true,
+    "jQuery": true
   },
   "rules": {
     "strict": 2,

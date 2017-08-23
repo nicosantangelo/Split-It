@@ -34,6 +34,7 @@
       "all_frames": true,
       "css": [],
       "js": [ "vendor/jquery-3.2.0.min.js", "inject/script.js" ],
+      "run_at": "document_start",
       "matches": [ "<all_urls>" ]
    }
   ],
