@@ -1,81 +1,61 @@
-/* Globals: insignia, configuration */
+/* Globals: configuration */
 
 ;(function() {
   'use strict'
 
   const SELECTORS = {
-    mapping    : '#js-pages-mapping',
-    add        : '#js-add-mapping',
-    save       : '#js-save',
-    delete     : '.js-delete-mapping',
-    template   : '.js-item-template',
-    iframeSrcs : '.js-input-iframesrc',
-    baseURLs   : '.js-input-baseurls',
-    closeNotice: '.js-close-notice',
+    mapping     : '#js-pages-mapping',
+    add         : '#js-add-mapping',
+
+    items       : '.js-item',
+    baseurl     : '[name="baseurl"]',
+    iframesrc   : '[name="iframesrc"]',
+    options     : 'ul.js-item-options li input',
+
+    delete      : '.js-delete-mapping',
+
+    save        : '#js-save',
+
+    notice      : '#js-notice',
+    closeNotice : '.js-close-notice',
+
+    itemTemplate: '#js-item-template',
   }
 
-  let saveTimeout = null
-  let multiselectElements = []
-  let elements = {}
-
-  let notice = document.getElementById('notice')
-
-  configuration.forEachDefault(function(key, value) {
-    elements[key] = document.getElementById(key)
-  })
 
   // -----------------------------------------------------------------------------
   // Events
 
   // Add configuration
   document.querySelector(SELECTORS.add)
-    .addEventListener('click', preventDefault(addMapping), false)
+    .addEventListener('click', preventDefault(injectNewMappingItem), false)
 
 
   // Delete mappings
   document.querySelector(SELECTORS.mapping)
-    .addEventListener('click', preventDefault(function deleteMapping(event) {
+    .addEventListener('click', function deleteMapping(event) {
       let target = event.target
-      let items = document.querySelectorAll('.item')
+      let deleteClass = SELECTORS.delete.slice(1) // remove the leading dot
 
-      if (target.classList.contains(SELECTORS.delete.slice(1))) {
-        target.parentElement.remove()
+      if (target.classList.contains(deleteClass)) {
+        let item = closest(target, 'item')
+        if (item) item.remove()
+
+        event.preventDefault()
       }
-    }), false)
+    }, false)
 
 
   // Save configuration
   document.querySelector(SELECTORS.save)
-    .addEventListener('click', function save() {
-      let newValues = {}
-
-      // Default primitive values
-      configuration.forEachDefault(function(key, value) {
-        newValues[key] = getInputValue(elements[key])
-      })
-
-      // Site mapping
-      let iframeSrcs = document.querySelectorAll(SELECTORS.iframeSrcs)
-      let siteMapping = {}
-
-      for(let i = 0; i < iframeSrcs.length; i++) {
-        let src = iframeSrcs[i].value
-        let baseURLs = multiselectElements[i].value()
-
-        if (src && baseURLs) {
-          baseURLs.forEach(function(base) { siteMapping[base] = src })
-        }
+    .addEventListener('submit', preventDefault(function save(event) {
+      let newValues = {
+        siteMapping: buildSiteMapping(),
+        optionsMapping: buildOptionsMapping()
       }
-      newValues.siteMapping = siteMapping
 
-      // Actual save
-      configuration.set(newValues, function() {
-        notice.classList.remove('hidden')
-        window.scrollTo(0, document.body.scrollHeight)
-        clearTimeout(saveTimeout)
-        saveTimeout = setTimeout(function() { notice.classList.add('hidden') }, 4000)
-      })
-    }, false)
+      configuration.set(newValues, notice.flash.bind(notice))
+    }), false)
 
 
   // Close notice
@@ -88,10 +68,7 @@
   // -----------------------------------------------------------------------------
   // Start
 
-  // Start multiselect
-  createMultiselectElements(SELECTORS.baseURLs)
-
-  // Setup all `new` flags
+  // Setup `new` flags
   chrome.storage.local.get({ justUpdated: 0 }, function(items) {
     if (items.justUpdated > 0) {
       let newItems = document.getElementsByClassName('new')
@@ -105,33 +82,21 @@
     }
   })
 
-  // Set existing values
-  configuration.forEachCurrent(function(key, value) {
-    if (typeof value === 'object') {
-      if (key !== 'siteMapping') return
+  // Add the saved configuration values to the HTML
+  configuration.get(function(config) {
+    if (! config.siteMapping) return
 
-      // Add the siteMapping values to the HTML, not pretty, but it works
-      let baseURLs = Object.keys(value)
+    for (let baseURL in config.siteMapping) {
+      let options = config.optionsMapping[baseURL]
 
-      console.log(value)
+      let item = injectNewMappingItem()
 
-      for(let i = 0; i < baseURLs.length; i++) {
-        if (i >= 1) addMapping()
+      item.setBaseURL(baseURL)
+      item.setIframeSrc(config.siteMapping[baseURL])
 
-        let baseURL = baseURLs[i]
-
-        let baseElements = document.querySelectorAll(SELECTORS.baseURLs)
-        let iframeElements = document.querySelectorAll(SELECTORS.iframeSrcs)
-
-        baseElements[i].value = baseURL
-        iframeElements[i].value = value[baseURL]
-      }
-
-    } else {
-      if(! elements[key]) return
-
-      elements[key].checked = value
-      elements[key].value = value
+      item.forEachOption(function(option, name) {
+        setInputValue(option, options[name])
+      })
     }
   })
 
@@ -139,37 +104,131 @@
   // -----------------------------------------------------------------------------
   // Utils
 
-  function addMapping() {
-    let template = document.querySelector(SELECTORS.template)
-    let item = document.createElement('div')
+  function buildSiteMapping() {
+    let siteMapping = {}
 
-    item.innerHTML = template.innerHTML
+    forEachItem(function(item) {
+      if (item.isValid()) {
+        siteMapping[item.getBaseURL()] = item.getIframeSrc()
+      }
+    })
 
-    document.querySelector(SELECTORS.mapping).appendChild(item)
-
-    createMultiselectElements(SELECTORS.baseURLs)
+    return siteMapping
   }
 
-  function createMultiselectElements(selector) {
-    let elements = document.querySelectorAll(selector)
+  function buildOptionsMapping() {
+    let optionsMapping = {}
 
-    for (let i = 0; i < elements.length; i++) {
-      try {
-        multiselectElements.push(insignia(elements[i]))
-      } catch(e) {}
+    forEachItem(function(item) {
+      if (! item.isValid()) return
+
+      let options = {}
+
+      item.forEachOption(function(option, name, index) {
+        options[name] = getInputValue(option) || configuration.DEFAULT_OPTION[name]
+      })
+
+      optionsMapping[item.getBaseURL()] = options
+    })
+
+    return optionsMapping
+  }
+
+  function injectNewMappingItem() {
+    let itemHTML = document.querySelector(SELECTORS.itemTemplate)
+    let itemContainer = document.createElement('div')
+
+    itemContainer.innerHTML = itemHTML.innerHTML
+
+    document.querySelector(SELECTORS.mapping).appendChild(itemContainer)
+
+    return decorateItemElement(itemContainer.firstElementChild)
+  }
+
+  function forEachItem(callback) {
+    return forEachElement(SELECTORS.items, function(itemElement, index) {
+      callback(decorateItemElement(itemElement), index)
+    })
+  }
+
+  function decorateItemElement(item) {
+    return {
+      isValid: function() {
+        return this.getBaseURL() && this.getIframeSrc()
+      },
+
+      getBaseURL: function(value) {
+        return item.querySelector(SELECTORS.baseurl).value
+      },
+      setBaseURL: function(value) {
+        item.querySelector(SELECTORS.baseurl).value = value
+      },
+
+      getIframeSrc: function(value) {
+        return item.querySelector(SELECTORS.iframesrc).value
+      },
+      setIframeSrc: function(value) {
+        item.querySelector(SELECTORS.iframesrc).value = value
+      },
+
+      forEachOption: function(callback) {
+        forEachElement(SELECTORS.options, function(optionElement, index) {
+          callback(optionElement, optionElement.name, index)
+        })
+      }
     }
+  }
+
+  let notice = {
+    saveTimeout: null,
+    el: document.querySelector(SELECTORS.notice),
+
+    flash: function() {
+      this.el.classList.remove('hidden')
+
+      window.scrollTo(0, document.body.scrollHeight)
+
+      clearTimeout(this.saveTimeout)
+      this.saveTimeout = setTimeout(function() { this.el.classList.add('hidden') }.bind(this), 4000)
+    }
+  }
+
+
+  function forEachElement(selector, callback) {
+    let items = document.querySelectorAll(selector)
+
+    for(let i = 0; i < items.length; i++) {
+      callback(items[i], i)
+    }
+
+    return items
   }
 
   function getInputValue(input) {
     if (! input) return null
     if (input.type === 'checkbox') return input.checked
+    if (input.type === 'number') return parseFloat(input.value)
     return input.value
+  }
+
+  function setInputValue(input, value) {
+    if (! input) return null
+    if (input.type === 'checkbox') return input.checked = value
+    return input.value = value
   }
 
   function preventDefault(fn) {
     return function(event) {
       event.preventDefault()
       fn(event)
+    }
+  }
+
+  function closest(node, className) {
+    while (node = node.parentNode) {
+      if (node.classList && node.classList.contains(className)) {
+        return node
+      }
     }
   }
 })()

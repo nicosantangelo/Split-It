@@ -8,8 +8,18 @@ chrome.extension.onMessage.addListener(function(request, sender, sendResponse) {
     case 'openOptions':
       openOptionsPage()
       break
-    case 'changeVisibility':
-      configuration.set({ isVisible: request.data.isVisible })
+    case 'updateOption':
+      configuration.get(function(config) {
+        // TODO: This for -> if clause is duplicated on the content script. Move into configuration?
+        for (let baseURL in config.siteMapping) {
+          if (request.url.search(baseURL) === -1) continue
+
+          config.optionsMapping[baseURL][request.key] = request.value
+
+          configuration.set({ optionsMapping: config.optionsMapping })
+        }
+      })
+
       break
     case 'changeStatus':
       let iconSuffix = request.active ? '' : '-inactive'
@@ -26,6 +36,8 @@ chrome.extension.onMessage.addListener(function(request, sender, sendResponse) {
       chrome.tabs.sendMessage(sender.tab.id, request, function (response) {})
       break
   }
+
+  return true
 })
 
 

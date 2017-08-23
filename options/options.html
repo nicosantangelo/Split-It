@@ -12,52 +12,69 @@
 <body>
 
   <header>
-    <!-- <img src="../icons/128.png" width="104" alt="Split/It"> -->
-    <h1>Split/It</h1>
+    <div><img src="icon.svg" width="100" alt="Split/It" /></div>
+    <br />
+    <div><img src="logo.png" width="160" alt="Split/It" /></div>
   </header>
 
   <div class="configuration">
-    <div class="options">
-      <div class="option">
-        <div>
-          <b>Sites</b>
-          <a id="js-add-mapping" href="#">add</a>
+    <form id="js-save" action="/" method="POST">
+      <div class="options">
+        <div class="option">
+          <div>
+            <span class="title">Sites</span>
+            <a id="js-add-mapping" href="#">add</a>
+          </div>
+
+          <ul id="js-pages-mapping" class="pages-mapping"><!-- Pre-mapping options injected here --></ul>
         </div>
-        <small>Each destination separated by a space</small>
-        <ul id="js-pages-mapping" class="pages-mapping">
-          <li class="item">
-            Show <input type="text" class="input js-input-iframesrc" placeholder="iframe.com"> on <span><input type="text" class="input js-input-baseurls" placeholder="destination.com"></span> <a class="js-delete-mapping" href="#">delete</a>
-          </li>
-        </ul>
       </div>
 
-      <div class="option">
-        Width of the iframe <input type="number" class="input iframe-width-input" name="iframeWidth" id="iframeWidth" placeholder="25"> %
+      <br />
+
+      <div class="save-button">
+        <input type="submit" class="btn btn-primary" value="Save changes" />
       </div>
-    </div>
-
-    <br />
-
-    <div class="save-button">
-      <div id="js-save" class="btn btn-primary">Save changes</div>
-    </div>
-    &nbsp;&nbsp;
+    </form>
 
     <br /> <br />
 
-    <div id="notice" class="notice hidden">
+    <div id="js-notice" class="notice hidden">
       <span class="js-close-notice close-notice">x</span>
       <b>Options saved!</b>
     </div>
   </div>
 
-  <template class="js-item-template">
-    <div class="item">
-      Show <input type="text" class="input js-input-iframesrc" placeholder="https://iframe.com"> on <span><input type="text" class="input js-input-baseurls" placeholder="destination.com"></span> <a class="js-delete-mapping" href="#">delete</a>
-    </div>
+
+  <template id="js-item-template">
+    <li class="js-item item">
+      <div>
+        • On <input type="text" name="baseurl" class="input" placeholder="destination.com" />
+        show <input type="text" name="iframesrc" class="input" placeholder="https://iframe.com" />
+        <a class="js-delete-mapping" href="#">delete</a>
+      </div>
+
+      <div class="item-options-container">
+        <div>Options ↓</div>
+        <ul class="js-item-options">
+          <li>
+            <span>Width</span>
+            <input type="number" name="width" class="input iframe-width-input" placeholder="val" value="40" />
+            <span>%</span>
+          </li>
+          <li>
+            <input type="checkbox" name="showMenu" value="showMenu" checked />
+            <span>Show menu</span>
+          </li>
+          <li>
+            <input type="checkbox" name="hoverOver" value="hoverOver" checked />
+            <span>Hover over</span>
+          </li>
+        </ul>
+      </div>
+    </li>
   </template>
 
-  <script src="../vendor/insignia.min.js"></script>
   <script src="../configuration.js"></script>
   <script src="options.js"></script>
 </body>

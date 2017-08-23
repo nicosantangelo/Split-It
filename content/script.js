@@ -1,30 +1,31 @@
 ;(function () {
   'use strict'
 
+
   configuration.get(function(config) {
-    config = Object.assign({}, configuration.DEFAULT, config)
+    config = configuration.setMissingDefaultValues(config)
 
     try {
       let URL = document.URL
 
-      console.log('[Split/It] Running Split/It with the current configuration', config)
+      console.log('[Split/It] Running Split/It with the following configuration', config)
 
-      widthManager.setCurrent(config.iframeWidth)
+      for (let baseURL in config.siteMapping) {
+        if (document.URL.search(baseURL) === -1) continue
 
-      // TODO: Add exceptions
-      for(let baseURL in config.siteMapping) {
-        if (document.URL.search(baseURL) !== -1) {
-          let url = config.siteMapping[baseURL]
-
-          console.log(`[Split/It] Loading ${url} into ${document.URL}`)
-          inject(url, config.isVisible)
-          listenToChromeMessages(url)
-          chromeMessages.activateIcon()
-          return
+        // Current site settings
+        let settings = {
+          url: config.siteMapping[baseURL],
+          options: config.optionsMapping[baseURL]
         }
+
+        widthManager.setCurrent(settings.options.width)
+
+        console.log(`[Split/It] Loading ${settings.url} into ${document.URL}`)
+        return startExtension(settings) // break the loop
       }
 
-      console.log(`[Split/It] Coudn't find a valid sidebar for ${document.URL}. Valid options are ${config.siteMapping}`)
+      console.log(`[Split/It] Coudn't find a valid sidebar for ${document.URL}. Valid URLs are ${config.siteMapping}`)
 
     } catch (error) {
       console.warn('[Split/It] An error ocurred trying to run the extension', error)
@@ -32,7 +33,24 @@
   })
 
 
-  function listenToChromeMessages(url) {
+  // -------------------------------------
+  // Start
+
+  function startExtension(settings) {
+    let url = settings.url
+    let options = settings.options
+
+    iframe.load(url, options)
+    resizing.load(url, options)
+    actions.load(url, options)
+
+    listenToChromeMessages()
+    chromeMessages.activateIcon()
+
+    if(! options.isVisible) iframe.hide()
+  }
+
+  function listenToChromeMessages() {
     chromeMessages.onMessage(function(request) {
       let $document = $(document)
 
@@ -45,20 +63,12 @@
           resizing.triggerMouseUp()
           break
         case 'toggle':
-          iframe.toggle(url)
+          iframe.toggle()
           break
         default:
           break
       }
     })
-  }
-
-  function inject(url, isVisible) {
-    iframe.load(url)
-    resizing.load(url)
-    actions.load(url)
-
-    if(! isVisible) iframe.hide()
   }
 
 
@@ -69,11 +79,18 @@
     id: '__splitit-embedded-frame',
 
     active: false,
+
+    src: null,
+    options: null,
+
     $html : [],
     $outer: [],
 
-    load(src) {
+    load(src, options) {
       console.log(`[Split/It] Injecting ${src} as an iframe`)
+
+      if (src) this.src = src
+      if (options) this.options = options
 
       this.activate()
 
@@ -101,7 +118,12 @@
     },
 
     resize() {
-      // this.$html.css({  'width': (100 - widthManager.current) + '%' }) // adjust html width
+      if (this.options.hoverOver) {
+      } else {
+        // setup old width as prop, use it to recover on else
+        this.$html.css({  'width': (100 - widthManager.current) + '%' }) // adjust html width
+      }
+
       this.$outer.css({ 'width': widthManager.asPercentage() })
       window.dispatchEvent(new Event('resize'))
     },
@@ -110,8 +132,17 @@
       this.$outer.stop(true, false).animate({ 'width': widthManager.asPercentage() }, 0)
     },
 
-    toggle(url) {
-      this.active ? this.hide() : this.load(url)
+    toggle() {
+      this.active ? this.hide() : this.load()
+    },
+
+    toggleHover() {
+      if (! this.options) this.options = { hoverOver: false }
+
+      this.options.hoverOver = ! this.options.hoverOver
+
+      this.options.hoverOver ? this.actions.deattach() : this.actions.deattach()
+      this.resize()
     },
 
     outerFrameExists() {
@@ -168,7 +199,7 @@
         startXPosition = null
 
         iframe.resize()
-        configuration.set({ iframeWidth: widthManager.toFixed() }) // Save configuration
+        configuration.set({ optionsMapping: optionsMapping })
       })
     },
 
@@ -242,13 +273,17 @@
   const actions = {
     id: '__splitit-actions',
 
-    load(url) {
+    load(url, options) {
+      if (! options.showMenu) return
+
       console.log('[Split/It] Adding Show/Hide buttons', URLToName(url))
 
       let gearPath = chrome.extension.getURL('images/gear.png')
 
       let actionsHTML = `<div id="${this.id}" class="${this.id}">
-        <a href="#" class="__splitit-onoff">Hide ${URLToName(url)}</a>
+        <span class="__splitit-action">${URLToName(url)}: </span>
+        <a href="#" class="__splitit-action __splitit-toggle">Hide</a>
+        <a href="#" class="__splitit-action __splitit-toggle-hover">Deattach</a>
         <a href="#" class="__splitit-options">
           <img src="${gearPath}" alt="Grear" />
         </a>
@@ -256,14 +291,19 @@
 
       $('body').append(actionsHTML)
 
-      $('.__splitit-onoff').click(preventDefault(function() {
-        iframe.toggle(url)
+      $('.__splitit-toggle').click(preventDefault(function() {
+        iframe.toggle()
       }))
-      $('.__splitit-options').click(preventDefault(chromeMessages.openOptions))
+
+      $('.__splitit-toggle-hover', el).click(preventDefault(function() {
+        iframe.toggleHover()
+      }))
+
+      $('.__splitit-options', el).click(preventDefault(chromeMessages.openOptions))
     },
 
     show() {
-      $('.__splitit-onoff').text(function(index, text) {
+      $('.__splitit-toggle').text(function(index, text) {
         return text.replace('Show', 'Hide')
       })
 
@@ -271,11 +311,27 @@
     },
 
     hide() {
-      $('.__splitit-onoff').text(function(index, text) {
+      $('.__splitit-toggle').text(function(index, text) {
         return text.replace('Hide', 'Show')
       })
 
       chromeMessages.changeVisibility(false)
+    },
+
+    attach() {
+      $('.__splitit-toggle-hover').text(function(index, text) {
+        return text.replace('Attach', 'Deattach')
+      })
+
+      chromeMessages.changeHoverOver(true)
+    },
+
+    deattach() {
+      $('.__splitit-toggle').text(function(index, text) {
+        return text.replace('Deattach', 'Attach')
+      })
+
+      chromeMessages.changeHoverOver(false)
     }
   }
 
@@ -316,21 +372,25 @@
     }
   }
 
-
-  // -------------------------------------
-  // Utils
-
   const chromeMessages = Object.freeze({
     openOptions() {
       chrome.extension.sendMessage({ action: 'openOptions' })
     },
 
     changeVisibility(isVisible) {
-      chrome.extension.sendMessage({ action: 'changeVisibility', data: { isVisible: isVisible } })
+      this.updateOption('isVisible', isVisible)
+    },
+
+    changeHoverOver(hoverOver) {
+      this.updateOption('hoverOver', hoverOver)
     },
 
     activateIcon() {
       chrome.extension.sendMessage({ action: 'changeStatus', active: true })
+    },
+
+    updateOption(key, value) {
+      chrome.extension.sendMessage({ action: 'updateOption', key: key, value: value })
     },
 
     onMessage(callback) {
@@ -339,6 +399,10 @@
       })
     }
   })
+
+
+  // -------------------------------------
+  // Utils
 
   function preventDefault(fn) {
     return function(event) {

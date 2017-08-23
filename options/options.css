@@ -3,7 +3,7 @@ body {
   font-size: 14px;
   line-height: 1.5;
   color: #666;
-  background-color: #F2F2F2;
+  background-color: #FFF;
 }
 
 a {
@@ -16,7 +16,8 @@ a:hover, a:active {
 
 header {
   text-align: center;
-  margin-top: 35px;
+  margin-top: 45px;
+  margin-bottom: 35px;
   color: #000;
 }
 
@@ -55,15 +56,17 @@ input {
 }
 
 .option {
-  padding-bottom: 15px;
-  margin-bottom: 15px;
+  padding-bottom: 25px;
+  margin-bottom: 25px;
   border-bottom: 1px solid #D2D2D2;
 }
+.option:last-child {
+  border-bottom: none;
+}
 
-.iframe-width-input {
-  max-width: 58px;
-  padding: 0 8px;
-  margin: 0 4px;
+.option .title {
+  font-weight: 600;
+  font-size: 15px;
 }
 
 
@@ -77,12 +80,25 @@ ul.pages-mapping {
 }
 
 .pages-mapping .item {
-  margin-bottom: 15px;
+  padding-left: 20px;
+  padding-bottom: 25px;
+  margin-bottom: 25px;
+}
+
+.pages-mapping .item-sub-options {
+  padding-top: 10px;
+  padding-left: 25px;
 }
 
 .pages-mapping .input {
   max-width: 240px;
   margin: 0 2px;
+}
+
+.pages-mapping .iframe-width-input {
+  max-width: 60px;
+  padding: 0 8px;
+  margin: 0 4px;
 }
 
 
