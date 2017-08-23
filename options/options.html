@@ -8,67 +8,85 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
   <link rel="stylesheet" type="text/css" href="options.css">
+  <link rel="stylesheet" type="text/css" href="balloon.min.css">
 </head>
 <body>
 
-  <header>
-    <div><img src="icon.svg" width="100" alt="Split/It" /></div>
-    <br />
-    <div><img src="logo.png" width="160" alt="Split/It" /></div>
-  </header>
-
-  <div class="configuration">
-    <form id="js-save" action="/" method="POST">
-      <div class="options">
-        <div class="option">
-          <div>
-            <span class="title">Sites</span>
-            <a id="js-add-mapping" href="#">add</a>
-          </div>
-
-          <ul id="js-pages-mapping" class="pages-mapping"><!-- Pre-mapping options injected here --></ul>
-        </div>
-      </div>
-
+  <div class="container">
+    <header class="header">
+      <div><img src="icon.svg" width="100" alt="Split/It" /></div>
       <br />
+      <div><img src="logo.png" width="160" alt="Split/It" /></div>
+      <p>Welcome! To begin, add a destination site (<i>where you'll want to split the window</i>) and then the splitted site (<i>which will appear to the right on the destination</i>). Dont forget to <b>save</b> your configuration!</p>
+    </header>
 
-      <div class="save-button">
-        <input type="submit" class="btn btn-primary" value="Save changes" />
+    <div class="configuration">
+      <form id="js-save" class="fade" action="/" method="POST">
+        <div class="options">
+          <div class="option">
+            <div>
+              <span class="title">Sites</span>
+              <a id="js-add-mapping" href="#">add</a>
+            </div>
+
+            <ul id="js-pages-mapping" class="pages-mapping"><!-- Pre-mapping options injected here --></ul>
+          </div>
+        </div>
+
+        <br />
+
+        <div class="save-button">
+          <input type="submit" class="btn btn-primary" value="Save changes" />
+          &nbsp;
+          <small><a href="">revert</a></small>
+        </div>
+      </form>
+
+      <br /> <br />
+
+      <div id="js-notice" class="notice hidden">
+        <span class="js-close-notice close-notice">x</span>
+        <b>Options saved!</b>
       </div>
-    </form>
 
-    <br /> <br />
+      <small><b>Split/It</b> does its best trying to accomodate to every site, but it's likely that you'll encounter some combinations that doesn't work. While I don't plan on supporting <i>all possible</i> edge cases, you can <a href="emailto:santangelonicolas+splitit@gmail.com">send me an email</a> requesting for a particular site or code it yourself by forking <a href="https://github.com/NicoSantangelo/split-it" target="_blank">the repo</a></small>
 
-    <div id="js-notice" class="notice hidden">
-      <span class="js-close-notice close-notice">x</span>
-      <b>Options saved!</b>
     </div>
   </div>
 
 
   <template id="js-item-template">
-    <li class="js-item item">
+    <li class="js-item item fade">
       <div>
-        • On <input type="text" name="baseurl" class="input" placeholder="destination.com" />
-        show <input type="text" name="iframesrc" class="input" placeholder="https://iframe.com" />
+        •&nbsp;&nbsp;On <input type="text" name="baseurl" class="input" placeholder="destination.com" />
+        show <input type="text" name="iframesrc" class="input" placeholder="split.com" />
+        <a class="js-open hidden" href="#">open</a>
         <a class="js-delete-mapping" href="#">delete</a>
       </div>
 
       <div class="item-options-container">
-        <div>Options ↓</div>
         <ul class="js-item-options">
           <li>
-            <span>Width</span>
-            <input type="number" name="width" class="input iframe-width-input" placeholder="val" value="40" />
-            <span>%</span>
+            <div class="item-option">
+              <span>Width</span>
+              <input type="number" name="width" class="input iframe-width-input" placeholder="val" value="40" />
+              <span>%</span>
+            </div>
+            <span class="link" data-balloon="How much of the window should the split panel take. It's a percentual value, where the 100% it's the entire window. You can always change this later by dragging the split panel on the destination site." data-balloon-length="large">?</span>
           </li>
           <li>
-            <input type="checkbox" name="showMenu" value="showMenu" checked />
-            <span>Show menu</span>
+            <div class="item-option">
+              <span>Show menu</span>
+              <input type="checkbox" name="showMenu" value="showMenu" checked />
+            </div>
+            <span class="link" data-balloon="Uncheck it in case you don't want to see the options menu on the upper right of the destination page. You can always toggle the split panel by pressing the extension icon on the browser menu." data-balloon-length="large">?</span>
           </li>
           <li>
-            <input type="checkbox" name="hoverOver" value="hoverOver" checked />
-            <span>Hover over</span>
+            <div class="item-option">
+              <span>Hover over&nbsp;</span>
+              <input type="checkbox" name="hoverOver" value="hoverOver" />
+            </div>
+            <span class="link" data-balloon="If checked, the split panel will hover over the destination site, without resizing it." data-balloon-length="large">?</span>
           </li>
         </ul>
       </div>
@@ -76,6 +94,7 @@
   </template>
 
   <script src="../configuration.js"></script>
+  <script src="analytics.js"></script>
   <script src="options.js"></script>
 </body>
 </html>

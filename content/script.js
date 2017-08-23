@@ -25,7 +25,7 @@
         return startExtension(settings) // break the loop
       }
 
-      console.log(`[Split/It] Coudn't find a valid sidebar for ${document.URL}. Valid URLs are ${config.siteMapping}`)
+      console.log(`[Split/It] Coudn't find a valid sidebar for ${document.URL}. Valid URLs are`, config.siteMapping)
 
     } catch (error) {
       console.warn('[Split/It] An error ocurred trying to run the extension', error)
@@ -80,16 +80,16 @@
 
     active: false,
 
-    src: null,
+    url: null,
     options: null,
 
     $html : [],
     $outer: [],
 
-    load(src, options) {
-      console.log(`[Split/It] Injecting ${src} as an iframe`)
+    load(url, options) {
+      console.log(`[Split/It] Injecting ${url} as an iframe`)
 
-      if (src) this.src = src
+      if (url) this.url = url
       if (options) this.options = options
 
       this.activate()
@@ -98,6 +98,8 @@
         this.resize()
         this.$outer.toggleClass('hidden', false)
       } else {
+        let src = url.search('//') === -1 ? `//${url}` : url
+
         this.$outer = $('<div>', { id: this.id }).append(`<iframe name="splitit" src="${src}" frameborder="0"></iframe>`)
         this.resize()
 

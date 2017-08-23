@@ -11,6 +11,7 @@
     baseurl     : '[name="baseurl"]',
     iframesrc   : '[name="iframesrc"]',
     options     : 'ul.js-item-options li input',
+    open        : '.js-open',
 
     delete      : '.js-delete-mapping',
 
@@ -28,18 +29,20 @@
 
   // Add configuration
   document.querySelector(SELECTORS.add)
-    .addEventListener('click', preventDefault(injectNewMappingItem), false)
+    .addEventListener('click', preventDefault(function() {
+      getNewItem().inject()
+    }), false)
 
 
-  // Delete mappings
+  // Delete mappings (hooked to the parent for dynamic items)
   document.querySelector(SELECTORS.mapping)
     .addEventListener('click', function deleteMapping(event) {
       let target = event.target
       let deleteClass = SELECTORS.delete.slice(1) // remove the leading dot
 
       if (target.classList.contains(deleteClass)) {
-        let item = closest(target, 'item')
-        if (item) item.remove()
+        let itemEl = closest(target, 'item')
+        if (itemEl) itemEl.remove()
 
         event.preventDefault()
       }
@@ -55,6 +58,9 @@
       }
 
       configuration.set(newValues, notice.flash.bind(notice))
+
+      // forEachItem(function(item) { item.revealSavedOptions() })
+      // ga('send', 'event', 'Options', 'save', 'Saved options, with the configuration: ' + JSON.stringify(newValues))
     }), false)
 
 
@@ -84,25 +90,39 @@
 
   // Add the saved configuration values to the HTML
   configuration.get(function(config) {
-    if (! config.siteMapping) return
+    revealElement(document.querySelector(SELECTORS.save))
 
-    for (let baseURL in config.siteMapping) {
-      let options = config.optionsMapping[baseURL]
+    if (isEmptyObject(config.siteMapping)) {
+      getNewItem().inject()
 
-      let item = injectNewMappingItem()
+    } else {
+      for (let baseURL in config.siteMapping) {
+        let options = config.optionsMapping[baseURL]
 
-      item.setBaseURL(baseURL)
-      item.setIframeSrc(config.siteMapping[baseURL])
+        let item = getNewItem()
 
-      item.forEachOption(function(option, name) {
-        setInputValue(option, options[name])
-      })
+        item.setSaved(true)
+        item.setBaseURL(baseURL)
+        item.setIframeSrc(config.siteMapping[baseURL])
+
+        item.forEachOption(function(option, name) {
+          setInputValue(option, options[name])
+        })
+
+        item.inject()
+      }
     }
   })
 
 
   // -----------------------------------------------------------------------------
   // Utils
+
+  function revealElement(element) {
+    setTimeout(function() {
+      element.classList.add('in')
+    }, 20)
+  }
 
   function buildSiteMapping() {
     let siteMapping = {}
@@ -134,13 +154,11 @@
     return optionsMapping
   }
 
-  function injectNewMappingItem() {
+  function getNewItem() {
     let itemHTML = document.querySelector(SELECTORS.itemTemplate)
     let itemContainer = document.createElement('div')
 
     itemContainer.innerHTML = itemHTML.innerHTML
-
-    document.querySelector(SELECTORS.mapping).appendChild(itemContainer)
 
     return decorateItemElement(itemContainer.firstElementChild)
   }
@@ -153,8 +171,32 @@
 
   function decorateItemElement(item) {
     return {
+      saved: false,
+
+      inject() {
+        document.querySelector(SELECTORS.mapping).appendChild(item)
+
+        // hook delete
+        // hook open
+        // on keydown => saved == false, hide open
+
+        // if saved => show open
+
+        revealElement(item)
+      },
+
+      // revealSavedOptions() {
+      //   item.querySelector(SELECTORS.open).classList.remove('hidden')
+      // },
+
       isValid: function() {
         return this.getBaseURL() && this.getIframeSrc()
+      },
+
+      setSaved(isSaved) {
+        this.isSaved = isSaved
+
+        // if true => show open
       },
 
       getBaseURL: function(value) {
@@ -172,7 +214,9 @@
       },
 
       forEachOption: function(callback) {
-        forEachElement(SELECTORS.options, function(optionElement, index) {
+        let options = item.querySelectorAll(SELECTORS.options)
+
+        forEachElement(options, function(optionElement, index) {
           callback(optionElement, optionElement.name, index)
         })
       }
@@ -194,8 +238,10 @@
   }
 
 
-  function forEachElement(selector, callback) {
-    let items = document.querySelectorAll(selector)
+  function forEachElement(selectorOrElements, callback) {
+    let items = typeof selectorOrElements === 'string'
+      ? document.querySelectorAll(selectorOrElements)
+      : selectorOrElements
 
     for(let i = 0; i < items.length; i++) {
       callback(items[i], i)
@@ -230,5 +276,9 @@
         return node
       }
     }
+  }
+
+  function isEmptyObject(obj) {
+    return Object.keys(obj).length === 0
   }
 })()

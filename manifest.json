@@ -48,5 +48,6 @@
     "webRequestBlocking",
     "<all_urls>"
   ],
-  "web_accessible_resources": [ "images/gear.png" ]
+  "web_accessible_resources": [ "images/gear.png" ],
+  "content_security_policy": "default-src 'self'; script-src 'self' 'unsafe-eval' https://www.google-analytics.com; img-src 'self' https://www.google-analytics.com https://stats.g.doubleclick.net data:"
 }
