@@ -11,8 +11,8 @@
     baseurl     : '[name="baseurl"]',
     iframesrc   : '[name="iframesrc"]',
     options     : 'ul.js-item-options li input',
-    open        : '.js-open',
 
+    open        : '.js-open-mapping',
     delete      : '.js-delete-mapping',
 
     save        : '#js-save',
@@ -34,32 +34,14 @@
     }), false)
 
 
-  // Delete mappings (hooked to the parent for dynamic items)
-  document.querySelector(SELECTORS.mapping)
-    .addEventListener('click', function deleteMapping(event) {
-      let target = event.target
-      let deleteClass = SELECTORS.delete.slice(1) // remove the leading dot
-
-      if (target.classList.contains(deleteClass)) {
-        let itemEl = closest(target, 'item')
-        if (itemEl) itemEl.remove()
-
-        event.preventDefault()
-      }
-    }, false)
-
-
   // Save configuration
   document.querySelector(SELECTORS.save)
     .addEventListener('submit', preventDefault(function save(event) {
-      let newValues = {
-        siteMapping: buildSiteMapping(),
-        optionsMapping: buildOptionsMapping()
-      }
+      let newValues = mapping.build()
 
       configuration.set(newValues, notice.flash.bind(notice))
 
-      // forEachItem(function(item) { item.revealSavedOptions() })
+      forEachItem(function(item) { item.setSaved(true) })
       // ga('send', 'event', 'Options', 'save', 'Saved options, with the configuration: ' + JSON.stringify(newValues))
     }), false)
 
@@ -90,8 +72,6 @@
 
   // Add the saved configuration values to the HTML
   configuration.get(function(config) {
-    revealElement(document.querySelector(SELECTORS.save))
-
     if (isEmptyObject(config.siteMapping)) {
       getNewItem().inject()
 
@@ -112,47 +92,13 @@
         item.inject()
       }
     }
+
+    revealElement(document.querySelector(SELECTORS.save))
   })
 
 
   // -----------------------------------------------------------------------------
-  // Utils
-
-  function revealElement(element) {
-    setTimeout(function() {
-      element.classList.add('in')
-    }, 20)
-  }
-
-  function buildSiteMapping() {
-    let siteMapping = {}
-
-    forEachItem(function(item) {
-      if (item.isValid()) {
-        siteMapping[item.getBaseURL()] = item.getIframeSrc()
-      }
-    })
-
-    return siteMapping
-  }
-
-  function buildOptionsMapping() {
-    let optionsMapping = {}
-
-    forEachItem(function(item) {
-      if (! item.isValid()) return
-
-      let options = {}
-
-      item.forEachOption(function(option, name, index) {
-        options[name] = getInputValue(option) || configuration.DEFAULT_OPTION[name]
-      })
-
-      optionsMapping[item.getBaseURL()] = options
-    })
-
-    return optionsMapping
-  }
+  // Item
 
   function getNewItem() {
     let itemHTML = document.querySelector(SELECTORS.itemTemplate)
@@ -173,43 +119,65 @@
     return {
       saved: false,
 
-      inject() {
+      inject: function() {
         document.querySelector(SELECTORS.mapping).appendChild(item)
 
-        // hook delete
-        // hook open
-        // on keydown => saved == false, hide open
-
-        // if saved => show open
+        this.hookKeydown()
+        this.hookDelete()
+        this.toggleOpenOption()
 
         revealElement(item)
       },
 
-      // revealSavedOptions() {
-      //   item.querySelector(SELECTORS.open).classList.remove('hidden')
-      // },
+      hookKeydown: function() {
+        let inputsSelector = [ SELECTORS.baseurl, SELECTORS.iframesrc ].join(',')
+
+        item.querySelector(inputsSelector)
+          .addEventListener('keydown', function() {
+            this.isSaved = false
+            this.toggleOpenOption()
+          }.bind(this), false)
+      },
+
+      hookDelete: function() {
+        item.querySelector(SELECTORS.delete)
+          .addEventListener('click', preventDefault(item.remove.bind(item)), false)
+      },
 
       isValid: function() {
         return this.getBaseURL() && this.getIframeSrc()
       },
 
-      setSaved(isSaved) {
+      setSaved: function(isSaved) {
         this.isSaved = isSaved
+        this.toggleOpenOption()
+      },
 
-        // if true => show open
+      toggleOpenOption: function() {
+        let openEl = item.querySelector(SELECTORS.open)
+
+        if (this.isSaved) {
+          openEl.dataset.balloon = `Open "${this.getBaseURL()}" with "${this.getIframeSrc()}" as split.`
+          openEl.href = this.getBaseURL()
+          openEl.classList.remove('hidden')
+        } else {
+          openEl.dataset.balloon = ''
+          openEl.href = '#'
+          openEl.classList.add('hidden')
+        }
       },
 
       getBaseURL: function(value) {
-        let baseURL = item.querySelector(SELECTORS.baseurl).value
-        return stripProtocol(baseURL)
+        let url = item.querySelector(SELECTORS.baseurl).value
+        return upsertURLProtocol(url)
       },
       setBaseURL: function(value) {
         item.querySelector(SELECTORS.baseurl).value = value
       },
 
       getIframeSrc: function(value) {
-        let iframeSrc = item.querySelector(SELECTORS.iframesrc).value
-        return stripProtocol(iframeSrc)
+        let url = item.querySelector(SELECTORS.iframesrc).value
+        return upsertURLProtocol(url)
       },
       setIframeSrc: function(value) {
         item.querySelector(SELECTORS.iframesrc).value = value
@@ -225,6 +193,10 @@
     }
   }
 
+
+  // -----------------------------------------------------------------------------
+  // Notice
+
   let notice = {
     saveTimeout: null,
     el: document.querySelector(SELECTORS.notice),
@@ -239,6 +211,58 @@
     }
   }
 
+
+  // -----------------------------------------------------------------------------
+  // Mapping
+
+  let mapping = {
+    build: function() {
+      return {
+        siteMapping: this.buildSite(),
+        optionsMapping: this.buildOptions()
+      }
+    },
+
+    buildSite: function() {
+      let siteMapping = {}
+
+      forEachItem(function(item) {
+        if (item.isValid()) {
+          siteMapping[item.getBaseURL()] = item.getIframeSrc()
+        }
+      })
+
+      return siteMapping
+    },
+
+    buildOptions: function() {
+      let optionsMapping = {}
+
+      forEachItem(function(item) {
+        if (! item.isValid()) return
+
+        let options = {}
+
+        item.forEachOption(function(option, name, index) {
+          options[name] = getInputValue(option) || configuration.DEFAULT_OPTION[name]
+        })
+
+        optionsMapping[item.getBaseURL()] = options
+      })
+
+      return optionsMapping
+    }
+  }
+
+
+  // -----------------------------------------------------------------------------
+  // Utils
+
+  function revealElement(element) {
+    setTimeout(function() {
+      element.classList.add('in')
+    }, 20)
+  }
 
   function forEachElement(selectorOrElements, callback) {
     let items = typeof selectorOrElements === 'string'
@@ -272,16 +296,12 @@
     }
   }
 
-  function closest(node, className) {
-    while (node = node.parentNode) {
-      if (node.classList && node.classList.contains(className)) {
-        return node
-      }
+  function upsertURLProtocol(url) {
+    if (url.search(/https?:\/\//) === -1) {
+      url = 'https://' + url
     }
-  }
 
-  function stripProtocol(url) {
-    return url.replace(/^(http(s)?:)?\/\//, '')
+    return url
   }
 
   function isEmptyObject(obj) {

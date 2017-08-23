@@ -17,7 +17,7 @@
       <div><img src="icon.svg" width="100" alt="Split/It" /></div>
       <br />
       <div><img src="logo.png" width="160" alt="Split/It" /></div>
-      <p>Welcome! To begin, add a destination site (<i>where you'll want to split the window</i>) and then the splitted site (<i>which will appear to the right on the destination</i>). Dont forget to <b>save</b> your configuration!</p>
+      <p>Welcome! To begin, add a <span class="link" data-balloon="In which URL you'll want the split to happen">destination site</span> and then the <span class="link" data-balloon="Which URL do you want to see in the split panel, when opening the destination site">splitted site</span>. If no protocol is added to the URLs, <b>https</b> is asumed. Dont forget to <b>save</b> your configuration!</p>
     </header>
 
     <div class="configuration">
@@ -38,9 +38,13 @@
         <div class="save-button">
           <input type="submit" class="btn btn-primary" value="Save changes" />
           &nbsp;
-          <small><a href="">revert</a></small>
+          <small><a href="">reset changes</a></small>
         </div>
       </form>
+
+      <br />
+
+      <small><b>Split/It</b> does its best trying to accomodate to every site, but it's likely that you'll encounter some combinations that doesn't work. While I don't plan on supporting <i>all possible</i> edge cases, you can <a href="emailto:santangelonicolas+splitit@gmail.com">send me an email</a> requesting for a particular site or code it yourself by forking <a href="https://github.com/NicoSantangelo/split-it" target="_blank">the repo</a></small>
 
       <br /> <br />
 
@@ -48,9 +52,6 @@
         <span class="js-close-notice close-notice">x</span>
         <b>Options saved!</b>
       </div>
-
-      <small><b>Split/It</b> does its best trying to accomodate to every site, but it's likely that you'll encounter some combinations that doesn't work. While I don't plan on supporting <i>all possible</i> edge cases, you can <a href="emailto:santangelonicolas+splitit@gmail.com">send me an email</a> requesting for a particular site or code it yourself by forking <a href="https://github.com/NicoSantangelo/split-it" target="_blank">the repo</a></small>
-
     </div>
   </div>
 
@@ -58,9 +59,12 @@
   <template id="js-item-template">
     <li class="js-item item fade">
       <div>
-        •&nbsp;&nbsp;On <input type="text" name="baseurl" class="input" placeholder="destination.com" />
-        show <input type="text" name="iframesrc" class="input" placeholder="split.com" />
-        <a class="js-open hidden" href="#">open</a>
+        •&nbsp;&nbsp;On
+        <input type="text" name="baseurl" class="input" placeholder="https://destination.com" />
+        show
+        <input type="text" name="iframesrc" class="input" placeholder="https://split.com" />
+
+        <a class="js-open-mapping hidden" href="#" target="_blank" data-balloon="" data-balloon-length="large">open</a>
         <a class="js-delete-mapping" href="#">delete</a>
       </div>
 

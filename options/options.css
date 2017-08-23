@@ -46,8 +46,9 @@ input {
 }
 
 .container {
-   max-width: 800px;
-   margin: auto;
+  max-width: 800px;
+  margin: auto;
+  padding: 0 10px;
 }
 
 .hidden {
@@ -64,7 +65,12 @@ input {
 }
 
 .configuration {
+  min-height: 400px;
   padding: 10px 0;
+}
+
+.options {
+  min-height: 215px;
 }
 
 .option {
@@ -131,6 +137,7 @@ ul.pages-mapping {
 .pages-mapping .iframe-width-input {
   max-width: 50px;
   margin: 0 4px;
+  font-size: 13px;
 }
 
 
