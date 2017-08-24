@@ -57,6 +57,7 @@
 }
 
 .__splitit-actions .__splitit-action {
+  padding: 0 2px;
   font-size: 11px;
   vertical-align: middle;
   color: #FFF;

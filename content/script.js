@@ -1,11 +1,14 @@
 (function () {
   'use strict'
 
+  let log = console.log.bind(this, '[Split/It]')
+  let warn = console.warn.bind(this, '[Split/It]')
+
   configuration.get(function(config) {
     config = configuration.setMissingDefaultValues(config)
 
     try {
-      console.log('[Split/It] Running Split/It with the following configuration', config)
+      log('Running with the following configuration', config)
 
       for (let baseURL in config.siteMapping) {
         if (document.URL.search(getHostname(baseURL)) === -1) continue
@@ -14,14 +17,14 @@
 
         widthManager.setCurrent(settings.getOption('width'))
 
-        console.log(`[Split/It] Loading ${settings.url} into ${document.URL}`)
+        log(`Loading ${settings.url} into ${document.URL}`)
         return startExtension() // break the loop
       }
 
-      console.log(`[Split/It] Coudn't find a valid sidebar for ${document.URL}. Valid URLs are`, config.siteMapping)
+      log(`Coudn't find a valid sidebar for ${document.URL}. Valid URLs are`, config.siteMapping)
 
     } catch (error) {
-      console.warn('[Split/It] An error ocurred trying to run the extension', error)
+      warn('An error ocurred trying to run the extension', error)
     }
   })
 
@@ -99,7 +102,7 @@
     outer: null,
 
     load() {
-      console.log(`[Split/It] Injecting ${settings.url} as an iframe`)
+      log(`Injecting ${settings.url} as an iframe`)
 
       this.activate()
 
@@ -124,16 +127,16 @@
     loadActions() {
       actions
         .load()
-        .attachToggle(this.toggle.bind(this))
-        .attachToggleHover(this.toggleHover.bind(this))
+        .onToggle(this.toggle.bind(this))
+        .onToggleHover(this.toggleHover.bind(this))
     },
 
     loadResizing() {
       resizing
         .load()
-        .attachResizeStart(function() {})
-        .attachResize(function() {})
-        .attachResizeEnd(this.resize.bind(this))
+        .onResizeStart(function() {})
+        .onResize(function() {})
+        .onResizeEnd(this.resize.bind(this))
     },
 
     toggle() {
@@ -206,12 +209,13 @@
     $guide: null,
 
     load() {
-      console.log('[Split/It] Adding resize handler')
+      log('Adding resize handler')
 
-      this.handle = createElement('div', { className: '__splitit-resizing-handle' })
       this.guide = createElement('div', { className: '__splitit-resizing-guide' })
+      this.handle = createElement('div', { className: '__splitit-resizing-handle' })
 
       this.append()
+      this.hookMouseEvents()
 
       return this
     },
@@ -224,30 +228,34 @@
       document.body.appendChild(this.handle)
     },
 
-    attachResizeStart(callback) {
-      this.handle.addEventListener('mousedown', preventDefault(function(event) {
-        this.isResizing = true
-        widthManager.record()
-
-        callback && callback(event)
-
-        css(this.guide, { 'width': 0 })
-        show(this.guide)
-        css(document.body, { cursor: 'move' })
-      }.bind(this)))
-
-      return this
+    hookMouseEvents() {
+      this.handle.addEventListener('mousedown', this.triggerResizeStart.bind(this))
+      document.addEventListener('mousemove',    this.triggerResize.bind(this))
+      document.addEventListener('mouseup',      this.triggerResizeEnd.bind(this))
     },
 
-    // TODO: This is not the best API (missbehaves if called more than once), but it works for now
-    attachResize(callback) {
-      document.addEventListener('mousemove', function(event) {
-        this.triggerResize(event, callback)
-      }.bind(this))
-
+    onResizeStart(callback) {
+      this._triggerResizeStart = callback
       return this
     },
-    triggerResize(event, callback) {
+    _triggerResizeStart() {},
+    triggerResizeStart(event) {
+      this.isResizing = true
+      widthManager.record()
+
+      this._triggerResizeStart(event)
+
+      css(this.guide, { 'width': 0 })
+      show(this.guide)
+      css(document.body, { cursor: 'move' })
+    },
+
+    onResize(callback) {
+      this._triggerResize = callback
+      return this
+    },
+    _triggerResize() {},
+    triggerResize(event) {
       if(! this.isResizing) return
       if(! event) event = {}
       if(! this.startXPosition) this.startXPosition = event.pageX
@@ -257,26 +265,24 @@
 
       widthManager.updateCurrentForMousePosition(xPosDiff)
 
-      callback && callback(event)
+      this._triggerResize(event)
 
       css(this.handle, { right: widthManager.getCurrentPercentage() })
       css(this.guide, widthManager.currentCSS())
     },
 
-    attachResizeEnd(callback) {
-      document.addEventListener('mouseup', preventDefault(function(event) {
-        this.triggerResizeEnd(event, callback)
-      }.bind(this)))
-
+    onResizeEnd(callback) {
+      this._triggerResizeEnd = callback
       return this
     },
-    triggerResizeEnd(event, callback) {
+    _triggerResizeEnd(event) {},
+    triggerResizeEnd(event) {
       if(! this.isResizing) return
 
       this.isResizing = false
       this.startXPosition = null
 
-      callback && callback(event)
+      this._triggerResizeEnd(event)
 
       settings.updateOption('width', widthManager.current)
 
@@ -300,45 +306,54 @@
     load() {
       if (! settings.getOption('showMenu')) return
 
+      log('Adding Show/Hide buttons', settings.url)
+
+      let actionsElement = this.buildActions()
+      document.body.appendChild(actionsElement)
+
+      return this
+    },
+
+    buildActions() {
       let siteName = getHostname(settings.url)
       let gearPath = chrome.extension.getURL('images/gear.png')
 
-      console.log('[Split/It] Adding Show/Hide buttons', siteName)
-
-      let actionsEl = createElement('div', {
+      let actionsElement = createElement('div', {
         id: this.id,
         className: this.id,
-        innerHTML: `
-          <a class="__splitit-action" target="_blank">${siteName}: </a>
-          <span class="__splitit-action __splitit-toggle-visibility">Hide</span>
-          <span class="__splitit-action __splitit-toggle-hover">Deattach</span>
-        `
+        innerHTML: `<a class="__splitit-action" href="${settings.url}" target="_blank">${siteName}:</a>`
       })
-      let optionsEl = createElement('span', {
+
+      actionsElement.appendChild(createElement('span', {
+        className: '__splitit-action',
+        innerHTML: 'Hide',
+        onclick: function(event) { this._triggerToggleVisibility(event) }.bind(this)
+      }))
+
+      actionsElement.appendChild(createElement('span', {
+        className: '__splitit-action',
+        innerHTML: 'Deattach',
+        onclick: function(event) { this._triggerToggleHover(event) }.bind(this)
+      }))
+
+      actionsElement.appendChild(createElement('span', {
         className: '__splitit-options',
-        innerHTML: `<img src="${gearPath}" alt="Grear" />`,
+        innerHTML: `<img src="${gearPath}" alt="Grear" width="16" height="16" />`,
         onclick: chromeMessages.openOptions
-      })
+      }))
 
-      actionsEl.appendChild(optionsEl)
-      document.body.appendChild(actionsEl)
+      return actionsElement
+    },
 
+    _triggerToggleVisibility() {},
+    onToggle(callback) {
+      this._triggerToggleVisibility = callback
       return this
     },
 
-    attachToggle(callback) {
-      document.querySelector('.__splitit-toggle-visibility')
-        .addEventListener('click', function(event) {
-          callback(event)
-        }, false)
-      return this
-    },
-
-    attachToggleHover(callback) {
-      document.querySelector('.__splitit-toggle-hover')
-        .addEventListener('click', function(event) {
-          callback(event)
-        }, false)
+    _triggerToggleHover() {},
+    onToggleHover(callback) {
+      this._triggerToggleHover = callback
       return this
     },
 
@@ -377,7 +392,7 @@
     },
 
     updateCurrentForMousePosition(xPosDiff) {
-      let bodyWidth = document.body.offsetWidth
+      let bodyWidth = getDocumentOuterWidth()
       let percentage = 100 * xPosDiff / bodyWidth
 
       this.current = Math.max(this.last - percentage,  100 * 100 / bodyWidth)
@@ -464,11 +479,10 @@
     }
   }
 
-  function preventDefault(fn) {
-    return function(event) {
-      event.preventDefault()
-      fn(event)
-    }
+  function getDocumentOuterWidth() {
+    return window.innerWidth
+      || document.documentElement.clientWidth
+      || document.body.clientWidth || document.body.offsetWidth
   }
 
   // -------------------------------------
