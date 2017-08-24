@@ -325,13 +325,13 @@
       })
 
       actionsElement.appendChild(createElement('span', {
-        className: '__splitit-action',
+        className: '__splitit-action __js-splitit-toggle-visibility',
         innerHTML: 'Hide',
         onclick: function(event) { this._triggerToggleVisibility(event) }.bind(this)
       }))
 
       actionsElement.appendChild(createElement('span', {
-        className: '__splitit-action',
+        className: '__splitit-action __js-splitit-toggle-hover',
         innerHTML: 'Deattach',
         onclick: function(event) { this._triggerToggleHover(event) }.bind(this)
       }))
@@ -358,7 +358,7 @@
     },
 
     toggle(key) {
-      let toggleEl = document.querySelector(`.__splitit-toggle-${key}`)
+      let toggleEl = document.querySelector(`.__js-splitit-toggle-${key}`)
       if (! toggleEl) throw new Error(`Tried to toggle a ${key} action, which does not exist`)
 
       let textMap = {
