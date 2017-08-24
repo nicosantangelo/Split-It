@@ -1,8 +1,8 @@
 (function () {
   'use strict'
 
-  let log = console.log.bind(this, '[Split/It]')
-  let warn = console.warn.bind(this, '[Split/It]')
+  let log = function() {}
+  let warn = function() {}
 
   configuration.get(function(config) {
     config = configuration.setMissingDefaultValues(config)
@@ -119,13 +119,13 @@
       this.resize()
 
       if (! settings.getOption('isVisible')) this.hide()
-      if (settings.getOption('hoverOver')) actions.toggle('hover')
+      if (settings.getOption('hoverOver')) menu.detach()
 
       return this
     },
 
     loadActions() {
-      actions
+      menu
         .load()
         .onToggle(this.toggle.bind(this))
         .onToggleHover(this.toggleHover.bind(this))
@@ -151,21 +151,21 @@
       chromeMessages.changeHoverOver(newHoverOver)
 
       this.resize()
-      actions.toggle('hover')
+      menu.detach()
     },
 
     show() {
-      resizing.toggle()
-      actions.toggle('visibility')
+      resizing.show()
+      menu.show()
 
       this.outer.classList.toggle('__splitit-hidden')
     },
 
     hide() {
-      this.deactivate()
+      resizing.show()
+      menu.hide()
 
-      resizing.toggle()
-      actions.toggle('visibility')
+      this.deactivate()
     },
 
     resize() {
@@ -290,8 +290,12 @@
       css(document.body, { cursor: 'auto' })
     },
 
-    toggle() {
-      toggle(this.handle)
+    show() {
+      show(this.handle)
+    },
+
+    hide() {
+      hide(this.handle)
     },
 
     setPageX(pageX) {
@@ -300,49 +304,69 @@
   }
 
 
-  const actions = {
-    id: '__splitit-actions',
+  const menu = {
+    id: '__splitit-menu',
+
+    actions   : null,
+    visibility: null,
+    hover     : null,
+    options   : null,
+
+    textMap: {
+      visibility: {
+        Show: 'Hide',
+        Hide: 'Show'
+      },
+
+      hover: {
+        Attach: 'Detach',
+        Detach: 'Attach'
+      }
+    },
 
     load() {
       if (! settings.getOption('showMenu')) return
 
       log('Adding Show/Hide buttons', settings.url)
 
-      let actionsElement = this.buildActions()
-      document.body.appendChild(actionsElement)
-
-      return this
-    },
-
-    buildActions() {
       let siteName = getHostname(settings.url)
       let gearPath = chrome.extension.getURL('images/gear.png')
 
-      let actionsElement = createElement('div', {
+      this.actions = createElement('div', {
         id: this.id,
         className: this.id,
         innerHTML: `<a class="__splitit-action" href="${settings.url}" target="_blank">${siteName}:</a>`
       })
 
-      actionsElement.appendChild(createElement('span', {
+      this.visibility = createElement('span', {
         className: '__splitit-action __js-splitit-toggle-visibility',
         innerHTML: 'Hide',
         onclick: function(event) { this._triggerToggleVisibility(event) }.bind(this)
-      }))
+      })
 
-      actionsElement.appendChild(createElement('span', {
+      this.hover = createElement('span', {
         className: '__splitit-action __js-splitit-toggle-hover',
-        innerHTML: 'Deattach',
+        innerHTML: 'Detach',
         onclick: function(event) { this._triggerToggleHover(event) }.bind(this)
-      }))
+      })
 
-      actionsElement.appendChild(createElement('span', {
+      this.options = createElement('span', {
         className: '__splitit-options',
         innerHTML: `<img src="${gearPath}" alt="Grear" width="16" height="16" />`,
         onclick: chromeMessages.openOptions
-      }))
+      })
 
-      return actionsElement
+      this.append()
+
+      return this
+    },
+
+    append() {
+      this.actions.appendChild(this.visibility)
+      this.actions.appendChild(this.hover)
+      this.actions.appendChild(this.options)
+
+      document.body.appendChild(this.actions)
     },
 
     _triggerToggleVisibility() {},
@@ -357,24 +381,18 @@
       return this
     },
 
-    toggle(key) {
-      let toggleEl = document.querySelector(`.__js-splitit-toggle-${key}`)
-      if (! toggleEl) throw new Error(`Tried to toggle a ${key} action, which does not exist`)
+    show() {
+      this.visibility.textContent = this.textMap['visibility']['Show']
+    },
+    hide() {
+      this.visibility.textContent = this.textMap['visibility']['Hide']
+    },
 
-      let textMap = {
-        visibility: {
-          Show: 'Hide',
-          Hide: 'Show'
-        },
-
-        hover: {
-          Deattach: 'Attach',
-          Attach: 'Deattach'
-        }
-      }[key]
-
-      let text = toggleEl.textContent
-      toggleEl.textContent = toggleEl.textContent.replace(text, textMap[text])
+    attach() {
+      this.hover.textContent = this.textMap['hover']['Attach']
+    },
+    detach() {
+      this.hover.textContent = this.textMap['hover']['Detach']
     }
   }
 
@@ -459,10 +477,6 @@
 
   function prepend(parent, el) {
     parent.insertBefore(el, parent.firstElementChild)
-  }
-
-  function toggle(el) {
-    el.classList.toggle('__splitit-hidden')
   }
 
   function show(el) {

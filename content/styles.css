@@ -40,7 +40,7 @@
 /* ----------------------------------------------
    Actions */
 
-.__splitit-actions {
+.__splitit-menu {
   padding: 0 3px 3px 3px;
   top: 1px;
   right: 15px;
@@ -51,12 +51,12 @@
   z-index: 9999;
 }
 
-.__splitit-actions .__splitit-options img {
+.__splitit-menu .__splitit-options img {
   vertical-align: middle;
   margin-left: 4px;
 }
 
-.__splitit-actions .__splitit-action {
+.__splitit-menu .__splitit-action {
   padding: 0 2px;
   font-size: 11px;
   vertical-align: middle;
