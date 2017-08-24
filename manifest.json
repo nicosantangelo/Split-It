@@ -24,7 +24,6 @@
       "matches": ["<all_urls>"],
       "css": ["content/styles.css"],
       "js": [
-        "vendor/jquery-3.2.0.min.js",
         "configuration.js",
         "content/script.js"
       ],
@@ -33,7 +32,7 @@
     {
       "all_frames": true,
       "css": [],
-      "js": [ "vendor/jquery-3.2.0.min.js", "inject/script.js" ],
+      "js": [ "inject/script.js" ],
       "run_at": "document_start",
       "matches": [ "<all_urls>" ]
    }

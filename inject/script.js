@@ -4,20 +4,20 @@
   // This script runs inside the injected iframe
   if (window.name !== 'splitit') return
 
-  jQuery('html')
-    .mousemove(function(event) {
-      chrome.extension.sendMessage({
-        action: 'mousemove',
-        data: { pageX: event.pageX, pageY: event.pageY }
-      }, identity)
-    })
-    .mouseup(function(event) {
-      chrome.extension.sendMessage({ action:'mouseup' }, identity)
-    })
+  var html = document.documentElement
+
+  html.addEventListener('mousemove', function(event) {
+    chrome.extension.sendMessage({
+      action: 'mousemove',
+      data: { pageX: event.pageX, pageY: event.pageY }
+    }, function() {})
+  }, false)
+
+  html.addEventListener('mouseup', function(event) {
+    chrome.extension.sendMessage({ action:'mouseup' }, function() {})
+  }, false)
 
   // Try to bypass the tendency of some sites to detect frames
-  jQuery('.external.authentication').attr('target', '_blank')
-  jQuery('body').attr('id', 'extension-base')
-
-  function identity(x) { return x }
+  var externalAuth = document.querySelector('.external.authentication')
+  if (externalAuth) externalAuth.target = '_blank'
 })()
