@@ -99,7 +99,7 @@
     load() {
       log(`Injecting ${settings.url} as an iframe`)
 
-      this.activate()
+      this.html  = document.documentElement
 
       this.outer = createElement('div', {
         id: this.id,
@@ -108,7 +108,7 @@
 
       prepend(document.body, this.outer)
 
-      this.loadActions()
+      if (settings.getOption('showMenu')) this.loadMenu()
       this.loadResizing()
 
       this.resize()
@@ -119,7 +119,7 @@
       return this
     },
 
-    loadActions() {
+    loadMenu() {
       menu
         .load()
         .onToggle(this.toggle.bind(this))
@@ -153,6 +153,7 @@
       resizing.show()
       menu.show()
 
+      this.resize()
       this.outer.classList.toggle('__splitit-hidden')
     },
 
@@ -160,7 +161,8 @@
       resizing.hide()
       menu.hide()
 
-      this.deactivate()
+      css(this.html, { width: '100%' })
+      this.outer.classList.toggle('__splitit-hidden')
     },
 
     resize() {
@@ -172,16 +174,6 @@
 
       css(this.outer, { width: widthManager.getCurrentPercentage() })
       window.dispatchEvent(new Event('resize'))
-    },
-
-    activate() {
-      this.html  = document.documentElement
-      this.outer = document.getElementById(this.id)
-    },
-
-    deactivate() {
-      css(this.html, { width: '100%' })
-      this.outer.classList.toggle('__splitit-hidden')
     },
 
     getPosition() {
@@ -302,10 +294,10 @@
   const menu = {
     id: '__splitit-menu',
 
-    actions   : null,
-    visibility: null,
-    hover     : null,
-    options   : null,
+    actions   : {},
+    visibility: {},
+    hover     : {},
+    options   : {},
 
     textMap: {
       visibility: {
@@ -320,8 +312,6 @@
     },
 
     load() {
-      if (! settings.getOption('showMenu')) return
-
       log('Adding Show/Hide buttons', settings.url)
 
       let siteName = getHostname(settings.url)

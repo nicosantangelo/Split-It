@@ -3,6 +3,9 @@
 ;(function() {
   'use strict'
 
+  // Easy access to log functions to be changed on build
+  let log = console.log.bind(console, '[Split/It]')
+
   const SELECTORS = {
     mapping     : '#js-pages-mapping',
     add         : '#js-add-mapping',
@@ -23,7 +26,6 @@
     itemTemplate: '#js-item-template',
   }
 
-
   // -----------------------------------------------------------------------------
   // Events
 
@@ -39,39 +41,29 @@
     .addEventListener('submit', preventDefault(function save(event) {
       let newValues = mapping.build()
 
-      configuration.set(newValues, notice.flash.bind(notice))
+      log('Saving new configuration', newValues)
 
+      configuration.set(newValues, notice.flash.bind(notice))
       forEachItem(function(item) { item.setSaved(true) })
+
       ga('send', 'event', 'Options', 'save', 'Saved options, with the configuration: ' + JSON.stringify(newValues))
     }), false)
 
 
   // Close notice
   document.querySelector(SELECTORS.closeNotice)
-    .addEventListener('click', function() {
-      closeButton.parentElement.classList.add('hidden')
+    .addEventListener('click', function(event) {
+      event.target.parentElement.classList.add('hidden')
     }, false)
 
 
   // -----------------------------------------------------------------------------
   // Start
 
-  // Setup `new` flags
-  chrome.storage.local.get({ justUpdated: 0 }, function(items) {
-    if (items.justUpdated > 0) {
-      let newItems = document.getElementsByClassName('new')
-
-      for(let i = 0; i < newItems.length; i++) {
-        newItems[i].classList.remove('hidden')
-      }
-      items.justUpdated -= 1
-
-      chrome.storage.local.set({ justUpdated: items.justUpdated })
-    }
-  })
-
   // Add the saved configuration values to the HTML
   configuration.get(function(config) {
+    log('Starting options with configuration', config)
+
     if (isEmptyObject(config.siteMapping)) {
       getNewItem().inject()
 
@@ -245,7 +237,8 @@
         let options = {}
 
         item.forEachOption(function(option, name, index) {
-          options[name] = getInputValue(option) || configuration.DEFAULT_OPTION[name]
+          let value = getInputValue(option)
+          options[name] = value == null ? configuration.DEFAULT_OPTION[name] : value
         })
 
         optionsMapping[item.getBaseURL()] = options
