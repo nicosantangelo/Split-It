@@ -1,9 +1,18 @@
-/* Globals: configuration */
+/*eslint strict: ["error", "global"]*/
+
+'use strict'
+
+// Easy access to log functions to be changed on build
+let log = console.log.bind(console, '[Split/It]')
 
 // -----------------------------------------------------------------------------
 // Messages from the front-end
 
 chrome.extension.onMessage.addListener(function(request, sender, sendResponse) {
+  let iconSuffix = ''
+
+  log(`Got a new ${request.action} message with action`, request)
+
   switch (request.action) {
     case 'openOptions':
       openOptionsPage()
@@ -17,7 +26,7 @@ chrome.extension.onMessage.addListener(function(request, sender, sendResponse) {
 
       break
     case 'changeStatus':
-      let iconSuffix = request.active ? '' : '-inactive'
+      iconSuffix = request.active ? '' : '-inactive'
 
       chrome.browserAction.setIcon({
         path: {
@@ -40,6 +49,7 @@ chrome.extension.onMessage.addListener(function(request, sender, sendResponse) {
 // Extension icon popup clicked
 
 chrome.browserAction.onClicked.addListener(function(tab) {
+  log('Extension button pressed')
   chrome.tabs.sendMessage(tab.id, { action: 'toggle' }, function() {})
 })
 
@@ -60,21 +70,71 @@ chrome.runtime.onInstalled.addListener(function(details) {
     options['justUpdated'] = 2
   }
 
-  chrome.storage.local.set(options, openOptionsPage)
+  configuration.set(options, openOptionsPage)
+  requestURLs.load()
 })
 
 
 // -----------------------------------------------------------------------------
 // Intercept Web Requests
 
-configuration.get('siteMapping', function(siteMapping) {
-  let baseURLs = Object.keys(siteMapping)
-  let hostURLs = getObjectValues(siteMapping)
+let requestURLs = {
+  base: [],
+  host: [],
 
-  let hosts = hostURLs.map(getHostVariations).join(' ')
+  load() {
+    configuration.get('siteMapping', this.set.bind(this))
+  },
+  listenForChanges() {
+    configuration.onChange(function(changes) {
+      if (! changes.siteMapping) return
 
+      this.set(changes.siteMapping.newValue)
+    }.bind(this))
+  },
+  set: function(mapping) {
+    if (isEmptyObject(mapping)) {
+      this.reset()
+    } else {
+      log('Setting new configuration mapping', mapping)
+
+      this.base = Object.keys(mapping)
+      this.host = getObjectValues(mapping)
+    }
+  },
+  containsBase(url) {
+    return containsAnyOf(this.base, url)
+  },
+  containsHost(url) {
+    return containsAnyOf(this.host, url)
+  },
+  getHostVariations: function() {
+    return this.host.map(getHostVariations).join(' ')
+  },
+  reset: function() {
+    log('Resetting values')
+
+    this.base = []
+    this.host = []
+  },
+  isEmpty: function() {
+    return this.base.length === 0 || this.host.length === 0
+  }
+}
+
+
+requestURLs.load()
+
+// Start listening
+interceptBaseHeaders()
+interceptHostHeaders()
+requestURLs.listenForChanges()
+
+
+function interceptBaseHeaders() {
   chrome.webRequest.onHeadersReceived.addListener(function(details) {
-    if (! containsAnyOf(baseURLs, details.url)) return
+    if (requestURLs.isEmpty()) return
+    if (! requestURLs.containsBase(details.url)) return
 
     let responseHeaders = details.responseHeaders
 
@@ -82,6 +142,8 @@ configuration.get('siteMapping', function(siteMapping) {
       let header = responseHeaders[i]
 
       if (isCSPHeader(header)) {
+        let hosts = requestURLs.getHostVariations()
+
         let newCSP = header.value
           .replace('script-src', `script-src ${hosts}`)
           .replace('child-src', `child-src ${hosts}`)
@@ -101,9 +163,12 @@ configuration.get('siteMapping', function(siteMapping) {
     urls: ['<all_urls>'],
     types: ['main_frame']
   }, ['blocking', 'responseHeaders'])
+}
 
+function interceptHostHeaders() {
   chrome.webRequest.onHeadersReceived.addListener(function(details) {
-    if (! containsAnyOf(hostURLs, details.url)) return
+    if (requestURLs.isEmpty()) return
+    if (! requestURLs.containsHost(details.url)) return
 
     let responseHeaders = details.responseHeaders
 
@@ -126,14 +191,14 @@ configuration.get('siteMapping', function(siteMapping) {
     urls: [ '*://*/*' ], // Pattern to match all http(s) pages
     types: [ 'sub_frame' ]
   }, ['blocking', 'responseHeaders'])
-})
+}
 
 
 // -----------------------------------------------------------------------------
 // Utils
 
 function openOptionsPage() {
-  let optionsId  = chrome.i18n.getMessage("@@extension_id") + '/options.html'
+  let optionsId  = chrome.i18n.getMessage('@@extension_id') + '/options.html'
   let optionsURL = chrome.extension.getURL('options/options.html')
 
   chrome.tabs.getAllInWindow(null, function (tabs) {
@@ -173,7 +238,7 @@ function getHostVariations(url) {
 
 function containsAnyOf(values, searched) {
   return values.some(function(value) {
-    return ~searched.search(value)
+    return searched.indexOf(value) !== 1
   })
 }
 
@@ -181,4 +246,8 @@ function getObjectValues(obj) {
   if (! obj) return []
 
   return Object.keys(obj).map(function(property) { return obj[property] })
+}
+
+function isEmptyObject(obj) {
+  return ! obj || Object.keys(obj).length === 0
 }

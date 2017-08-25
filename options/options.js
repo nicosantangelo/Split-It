@@ -78,6 +78,7 @@
     } else {
       for (let baseURL in config.siteMapping) {
         let options = config.optionsMapping[baseURL]
+        if (! options) continue
 
         let item = getNewItem()
 
@@ -305,6 +306,6 @@
   }
 
   function isEmptyObject(obj) {
-    return Object.keys(obj).length === 0
+    return ! obj || Object.keys(obj).length === 0
   }
 })()

@@ -42,7 +42,7 @@
       chrome.storage.sync.set(values, callback)
     },
 
-    onChanged: function(callback) {
+    onChange: function(callback) {
       chrome.storage.onChanged.addListener(function(changes, namespace) {
         callback(changes)
       })

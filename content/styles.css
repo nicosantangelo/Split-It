@@ -51,9 +51,10 @@
   z-index: 9999;
 }
 
-.__splitit-menu .__splitit-options img {
-  vertical-align: middle;
+.__splitit-menu .__splitit-options {
   margin-left: 4px;
+  display: inline-block;
+  vertical-align: middle;
 }
 
 .__splitit-menu .__splitit-action {
@@ -62,6 +63,9 @@
   vertical-align: middle;
   color: #FFF;
   font-family: sans-serif;
+}
+.__splitit-menu .__splitit-action:hover {
+  text-decoration: underline;
 }
 
 

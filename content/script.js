@@ -1,31 +1,26 @@
 (function () {
   'use strict'
 
-  let log = function() {}
-  let warn = function() {}
+  // Easy access to log functions to be changed on build
+  let log = console.log.bind(console, '[Split/It]')
 
   configuration.get(function(config) {
     config = configuration.setMissingDefaultValues(config)
 
-    try {
-      log('Running with the following configuration', config)
+    log('Running with the following configuration', config)
 
-      for (let baseURL in config.siteMapping) {
-        if (document.URL.search(getHostname(baseURL)) === -1) continue
+    for (let baseURL in config.siteMapping) {
+      if (document.URL.indexOf(getHostname(baseURL)) === -1) continue
 
-        settings.load(baseURL, config)
+      settings.load(baseURL, config)
 
-        widthManager.setCurrent(settings.getOption('width'))
+      widthManager.setCurrent(settings.getOption('width'))
 
-        log(`Loading ${settings.url} into ${document.URL}`)
-        return startExtension() // break the loop
-      }
-
-      log(`Coudn't find a valid sidebar for ${document.URL}. Valid URLs are`, config.siteMapping)
-
-    } catch (error) {
-      warn('An error ocurred trying to run the extension', error)
+      log(`Loading ${settings.url} into ${document.URL}`)
+      return startExtension() // break the loop
     }
+
+    log(`Coudn't find a valid sidebar for ${document.URL}. Valid URLs are`, config.siteMapping)
   })
 
 
@@ -162,7 +157,7 @@
     },
 
     hide() {
-      resizing.show()
+      resizing.hide()
       menu.hide()
 
       this.deactivate()
@@ -284,7 +279,7 @@
 
       this._triggerResizeEnd(event)
 
-      settings.updateOption('width', widthManager.current)
+      settings.updateOption('width', widthManager.toFixed())
 
       hide(this.guide)
       css(document.body, { cursor: 'auto' })
