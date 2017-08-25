@@ -42,7 +42,7 @@
       configuration.set(newValues, notice.flash.bind(notice))
 
       forEachItem(function(item) { item.setSaved(true) })
-      // ga('send', 'event', 'Options', 'save', 'Saved options, with the configuration: ' + JSON.stringify(newValues))
+      ga('send', 'event', 'Options', 'save', 'Saved options, with the configuration: ' + JSON.stringify(newValues))
     }), false)
 
 
