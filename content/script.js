@@ -10,7 +10,7 @@
     log('Running with the following configuration', config)
 
     for (let baseURL in config.siteMapping) {
-      if (document.URL.indexOf(getHostname(baseURL)) === -1) continue
+      if (document.URL.search(getHostname(baseURL)) === -1) continue
 
       settings.load(baseURL, config)
 

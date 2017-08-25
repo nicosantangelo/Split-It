@@ -262,7 +262,7 @@ function getHostVariations(url) {
 
 function containsAnyOf(values, searched) {
   return values.some(function(value) {
-    return searched.indexOf(value) !== 1
+    return searched.search(value) !== 1
   })
 }
 
