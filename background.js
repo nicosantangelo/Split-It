@@ -4,6 +4,8 @@
 
 // Easy access to log functions to be changed on build
 let log = console.log.bind(console, '[Split/It]')
+let group = console.group.bind(console)
+let groupEnd = console.groupEnd.bind(console)
 
 // -----------------------------------------------------------------------------
 // Messages from the front-end
@@ -138,10 +140,16 @@ function interceptBaseHeaders() {
 
     let responseHeaders = details.responseHeaders
 
+    group('baseHeaders')
+    log('Mingiling with header', details.url)
+    log('Before', responseHeaders)
+
     for (let i = 0; i < responseHeaders.length; i++) {
       let header = responseHeaders[i]
 
       if (isCSPHeader(header)) {
+        log('Replacing ICP header', header)
+
         let hosts = requestURLs.getHostVariations()
 
         let newCSP = header.value
@@ -153,9 +161,14 @@ function interceptBaseHeaders() {
         header.value = newCSP
 
       } else if (isFrameHeader(header)) {
+        log('Removing frame header', header)
+
         responseHeaders.splice(i, 1) // Removes the header
       }
     }
+
+    log('After', responseHeaders)
+    groupEnd('baseHeaders')
 
     return { responseHeaders: responseHeaders }
 
@@ -172,18 +185,29 @@ function interceptHostHeaders() {
 
     let responseHeaders = details.responseHeaders
 
+    group('hostHeaders')
+    log('Mingiling with header', details.url)
+    log('Before', responseHeaders)
+
     for (let i = 0; i < responseHeaders.length; i++) {
       let header = responseHeaders[i]
 
       if (isCSPHeader(header)) {
+        log('Replacing ICP header', header)
+
         let newCSP = header.value.search('frame-ancestors') !== -1 ? '' : header.value
 
         header.value = newCSP
 
       } else if (isFrameHeader(header)) {
+        log('Removing frame header', header)
+
         responseHeaders.splice(i, 1) // Remove header
       }
     }
+
+    log('After', responseHeaders)
+    groupEnd('hostHeaders')
 
     return { responseHeaders: responseHeaders }
 

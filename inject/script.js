@@ -6,6 +6,10 @@
 
   var html = document.documentElement
 
+  var script = document.createElement('script')
+  script.innerHTML = 'window.parent = window;'
+  html.appendChild(script)
+
   html.addEventListener('mousemove', function(event) {
     chrome.extension.sendMessage({
       action: 'mousemove',

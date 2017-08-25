@@ -103,7 +103,7 @@
 
       this.outer = createElement('div', {
         id: this.id,
-        innerHTML: `<iframe name="splitit" src="${settings.url}" frameborder="0"></iframe>`
+        innerHTML: `<iframe name="splitit" src="${settings.url}" frameborder="0" sandbox="allow-same-origin allow-scripts allow-popups allow-forms"></iframe>`
       })
 
       prepend(document.body, this.outer)
