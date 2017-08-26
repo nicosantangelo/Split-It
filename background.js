@@ -3,9 +3,9 @@
 'use strict'
 
 // Easy access to log functions to be changed on build
-let log = console.log.bind(console, '[Split/It]')
-let group = console.group.bind(console)
-let groupEnd = console.groupEnd.bind(console)
+let log = function() {}
+let group = function() {}
+let groupEnd = function() {}
 
 // -----------------------------------------------------------------------------
 // Messages from the front-end

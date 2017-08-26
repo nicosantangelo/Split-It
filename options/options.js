@@ -4,7 +4,7 @@
   'use strict'
 
   // Easy access to log functions to be changed on build
-  let log = console.log.bind(console, '[Split/It]')
+  let log = function() {}
 
   const SELECTORS = {
     mapping     : '#js-pages-mapping',

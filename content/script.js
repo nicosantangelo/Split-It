@@ -2,7 +2,7 @@
   'use strict'
 
   // Easy access to log functions to be changed on build
-  let log = console.log.bind(console, '[Split/It]')
+  let log = function() {}
 
   try {
     configuration.get(function(config) {
