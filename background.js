@@ -82,7 +82,7 @@ chrome.runtime.onInstalled.addListener(function(details) {
 
 let requestURLs = {
   base: [],
-  host: [],
+  iframe: [],
 
   load() {
     configuration.get('siteMapping', this.set.bind(this))
@@ -100,27 +100,27 @@ let requestURLs = {
     } else {
       log('Setting new configuration mapping', mapping)
 
-      this.base = Object.keys(mapping)
-      this.host = getObjectValues(mapping)
+      this.base = Object.keys(mapping).map(getHostname)
+      this.iframe = getObjectValues(mapping).map(getHostname)
     }
   },
   containsBase(url) {
-    return containsAnyOf(this.base, url)
+    return containsAnyOf(url, this.base)
   },
-  containsHost(url) {
-    return containsAnyOf(this.host, url)
+  containsIframe(url) {
+    return containsAnyOf(url, this.iframe)
   },
-  getHostVariations: function() {
-    return this.host.map(getHostVariations).join(' ')
+  getIframeHostVariations: function() {
+    return this.iframe.map(getHostVariations).join(' ')
   },
   reset: function() {
     log('Resetting values')
 
     this.base = []
-    this.host = []
+    this.iframe = []
   },
   isEmpty: function() {
-    return this.base.length === 0 || this.host.length === 0
+    return this.base.length === 0 || this.iframe.length === 0
   }
 }
 
@@ -129,7 +129,7 @@ requestURLs.load()
 
 // Start listening
 interceptBaseHeaders()
-interceptHostHeaders()
+interceptIframeHeaders()
 requestURLs.listenForChanges()
 
 
@@ -150,7 +150,7 @@ function interceptBaseHeaders() {
       if (isCSPHeader(header)) {
         log('Replacing ICP header', header)
 
-        let hosts = requestURLs.getHostVariations()
+        let hosts = requestURLs.getIframeHostVariations()
 
         let newCSP = header.value
           .replace('script-src', `script-src ${hosts}`)
@@ -178,10 +178,10 @@ function interceptBaseHeaders() {
   }, ['blocking', 'responseHeaders'])
 }
 
-function interceptHostHeaders() {
+function interceptIframeHeaders() {
   chrome.webRequest.onHeadersReceived.addListener(function(details) {
     if (requestURLs.isEmpty()) return
-    if (! requestURLs.containsHost(details.url)) return
+    if (! requestURLs.containsIframe(details.url)) return
 
     let responseHeaders = details.responseHeaders
 
@@ -251,18 +251,21 @@ function isFrameHeader(header) {
   return headerName == 'x-frame-options' || headerName == 'frame-options'
 }
 
-function getHostVariations(url) {
-  // Takes a full url and tries to generate the different host versions
-  // from: "https://reddit.com" to "www.reddit.com reddit.com"
-  url = url.replace(/https?:\/\/(www\.)?/, '')
-
-  return `www.${url} ${url}`
+function getHostVariations(hostname) {
+  // Takes a hostname and tries to generate the different host versions
+  // from: "reddit.com" to "www.reddit.com reddit.com"
+  return `www.${hostname} ${hostname}`
 }
 
+function getHostname(url) {
+  return url
+    .replace(/https?:\/\/(www\.)?/, '') // remove protocol
+    .replace(/\/$/, '')                 // remove trailing slash
+}
 
-function containsAnyOf(values, searched) {
-  return values.some(function(value) {
-    return searched.search(value) !== 1
+function containsAnyOf(baseStr, searchTerms) {
+  return searchTerms.some(function(searched) {
+    return baseStr.search(searched) !== -1
   })
 }
 
@@ -275,3 +278,4 @@ function getObjectValues(obj) {
 function isEmptyObject(obj) {
   return ! obj || Object.keys(obj).length === 0
 }
+

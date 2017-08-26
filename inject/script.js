@@ -7,7 +7,7 @@
   var html = document.documentElement
 
   var script = document.createElement('script')
-  script.innerHTML = 'window.parent = window;'
+  script.innerHTML = 'window.parent = window;window.self = top;'
   html.appendChild(script)
 
   html.addEventListener('mousemove', function(event) {
