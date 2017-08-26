@@ -4,24 +4,28 @@
   // Easy access to log functions to be changed on build
   let log = console.log.bind(console, '[Split/It]')
 
-  configuration.get(function(config) {
-    config = configuration.setMissingDefaultValues(config)
+  try {
+    configuration.get(function(config) {
+      config = configuration.setMissingDefaultValues(config)
 
-    log('Running with the following configuration', config)
+      log('Running with the following configuration', config)
 
-    for (let baseURL in config.siteMapping) {
-      if (document.URL.search(getHostname(baseURL)) === -1) continue
+      for (let baseURL in config.siteMapping) {
+        if (document.URL.search(getHostname(baseURL)) === -1) continue
 
-      settings.load(baseURL, config)
+        settings.load(baseURL, config)
 
-      widthManager.setCurrent(settings.getOption('width'))
+        widthManager.setCurrent(settings.getOption('width'))
 
-      log(`Loading ${settings.url} into ${document.URL}`)
-      return startExtension() // break the loop
-    }
+        log(`Loading ${settings.url} into ${document.URL}`)
+        return startExtension() // break the loop
+      }
 
-    log(`Coudn't find a valid sidebar for ${document.URL}. Valid URLs are`, config.siteMapping)
-  })
+      log(`Coudn't find a valid sidebar for ${document.URL}. Valid URLs are`, config.siteMapping)
+    })
+  } catch(error) {
+    console.warn('[Split/It] An error ocurred trying to run the Split/It extension. Please report it to: https://github.com/NicoSantangelo/Split-It/issues', error)
+  }
 
 
   // -------------------------------------
