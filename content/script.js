@@ -139,10 +139,10 @@
     },
 
     toggle() {
-      settings.getOption('isVisible') ? this.hide() : this.show()
-
       let newIsVisible = settings.toggleOption('isVisible')
       chromeMessages.changeVisibility(newIsVisible)
+
+      newIsVisible ? this.show() : this.hide()
     },
 
     toggleHover() {
@@ -150,7 +150,7 @@
       chromeMessages.changeHoverOver(newHoverOver)
 
       this.resize()
-      menu.detach()
+      newHoverOver ? menu.detach() : menu.attach()
     },
 
     show() {

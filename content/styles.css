@@ -41,13 +41,14 @@
    Actions */
 
 .__splitit-menu {
-  height: 16px;
+  min-height: 16px;
   top: 1px;
   right: 15px;
   padding: 0 3px 3px 3px;
   position: fixed;
   border-radius: 5px;
   background-color: rgba(45, 45, 45, 0.6);
+  display: inline-block;
   cursor: pointer;
   z-index: 9999;
 }
