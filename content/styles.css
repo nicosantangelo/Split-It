@@ -54,6 +54,7 @@
 }
 
 .__splitit-menu .__splitit-options {
+  line-height: 10px;
   margin-left: 4px;
   display: inline-block;
   vertical-align: middle;
