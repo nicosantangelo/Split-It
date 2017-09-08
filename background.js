@@ -7,6 +7,7 @@ let log = console.log.bind(console, '[Split/It]')
 let group = console.group.bind(console)
 let groupEnd = console.groupEnd.bind(console)
 
+
 // -----------------------------------------------------------------------------
 // Messages from the front-end
 
@@ -53,6 +54,18 @@ chrome.extension.onMessage.addListener(function(request, sender, sendResponse) {
 chrome.browserAction.onClicked.addListener(function(tab) {
   log('Extension button pressed')
   chrome.tabs.sendMessage(tab.id, { action: 'toggle' }, function() {})
+})
+
+
+// -----------------------------------------------------------------------------
+// Keyboard shortcuts
+
+chrome.commands.onCommand.addListener(function(command) {
+  log('Chrome command detected', command)
+
+  if (command === 'openOptions') {
+    openOptionsPage()
+  }
 })
 
 

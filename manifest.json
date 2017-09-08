@@ -19,6 +19,11 @@
       "128": "icons/128-inactive.png"
     }
   },
+  "commands": {
+    "openOptions": {
+      "description": "Open Split/It options"
+    }
+  },
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
